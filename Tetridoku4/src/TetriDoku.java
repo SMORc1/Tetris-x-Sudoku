@@ -8,8 +8,9 @@ import java.util.List;
 import javax.sound.sampled.*;
 
 // ================================================================
-//  T E T R I D O K U  v12
-//  UI polish + tutorial power-up page + menu BGM + sidebar fixes
+//  T E T R I D O K U  v13
+//  Rich pause menu: Resume | Restart | Settings | Main Menu
+//  Settings panel: mute, speed, ghost piece toggle
 // ================================================================
 
 public class TetriDoku extends JFrame {
@@ -1068,6 +1069,13 @@ class GamePanel extends JPanel implements ActionListener {
     Piece cur, nxt;
     int score = 0, level = 1, lines = 0;
     boolean gameOver = false, paused = false, muted = false;
+    boolean showGhost = true;  // settings: ghost piece on/off
+
+    // ── Pause menu state ─────────────────────────────────────────
+    static final int PAUSE_RESUME = 0, PAUSE_RESTART = 1, PAUSE_SETTINGS = 2, PAUSE_MAINMENU = 3;
+    int pauseSel = 0;          // currently highlighted menu item
+    boolean inSettings = false; // true = showing settings sub-panel
+    int settingsSel = 0;        // highlighted setting row (0=mute,1=ghost,2=speed)
 
     // ── Power-up state ───────────────────────────────────────────
     // Time Freeze  (key: F) — stops auto-drop timer for 8 seconds
@@ -1198,28 +1206,60 @@ class GamePanel extends JPanel implements ActionListener {
     }
 
     void onKey(int k) {
+        // ── Game over screen ──────────────────────────────────────
         if (gameOver) {
             if (k == KeyEvent.VK_R) newGame();
-            if (k == KeyEvent.VK_ESCAPE || k == KeyEvent.VK_M && false) {
-                // go to main menu
+            if (k == KeyEvent.VK_ESCAPE) goToMainMenu();
+            return;
+        }
+
+        // ── Pause key — toggle pause ──────────────────────────────
+        if (k == KeyEvent.VK_P || (paused && !inSettings && k == KeyEvent.VK_ESCAPE)) {
+            if (!paused) {
+                paused = true; pauseSel = 0; inSettings = false;
+                gameTmr.stop(); levelTmr.stop(); SoundEngine.stopBGM();
+            } else if (!inSettings) {
+                resumeGame();
+            }
+            repaint(); return;
+        }
+
+        // ── Settings sub-panel navigation ─────────────────────────
+        if (paused && inSettings) {
+            if (k == KeyEvent.VK_ESCAPE || k == KeyEvent.VK_BACK_SPACE) {
+                inSettings = false; repaint(); return;
+            }
+            if (k == KeyEvent.VK_UP)   { settingsSel = (settingsSel + 2) % 3; repaint(); return; }
+            if (k == KeyEvent.VK_DOWN) { settingsSel = (settingsSel + 1) % 3; repaint(); return; }
+            if (k == KeyEvent.VK_ENTER || k == KeyEvent.VK_SPACE) {
+                applySettingAction(); repaint(); return;
+            }
+            if (k == KeyEvent.VK_LEFT || k == KeyEvent.VK_MINUS) {
+                if (settingsSel == 2) { adjustLevel(-1); repaint(); } return;
+            }
+            if (k == KeyEvent.VK_RIGHT || k == KeyEvent.VK_EQUALS) {
+                if (settingsSel == 2) { adjustLevel( 1); repaint(); } return;
             }
             return;
         }
-        if (k == KeyEvent.VK_P) {
-            paused = !paused;
-            if (paused) { gameTmr.stop(); levelTmr.stop(); SoundEngine.stopBGM(); }
-            else        { gameTmr.start(); levelTmr.start();
-                if (!muted) SoundEngine.startBGM();
-                levelStartMs = System.currentTimeMillis() - (level-1)*LEVEL_DURATION_MS; }
-            repaint(); return;
+
+        // ── Pause menu navigation ─────────────────────────────────
+        if (paused) {
+            if (k == KeyEvent.VK_UP)   { pauseSel = (pauseSel + 3) % 4; repaint(); return; }
+            if (k == KeyEvent.VK_DOWN) { pauseSel = (pauseSel + 1) % 4; repaint(); return; }
+            if (k == KeyEvent.VK_ENTER || k == KeyEvent.VK_SPACE) {
+                applyPauseMenuAction(); repaint(); return;
+            }
+            return;
         }
+
+        // ── Active gameplay ───────────────────────────────────────
         if (k == KeyEvent.VK_M) {
             muted = !muted;
-            if (muted) SoundEngine.stopBGM();
-            else SoundEngine.startBGM();
+            if (muted) SoundEngine.stopBGM(); else SoundEngine.startBGM();
             repaint(); return;
         }
-        if (paused || flashTick > 0) return;
+        if (flashTick > 0) return;
         switch (k) {
             case KeyEvent.VK_LEFT:   shiftPiece(0,-1); break;
             case KeyEvent.VK_RIGHT:  shiftPiece(0, 1); break;
@@ -1236,6 +1276,47 @@ class GamePanel extends JPanel implements ActionListener {
             case KeyEvent.VK_B:      activateBomb();    break;
         }
         repaint();
+    }
+
+    void resumeGame() {
+        paused = false; inSettings = false;
+        gameTmr.start(); levelTmr.start();
+        if (!muted) SoundEngine.startBGM();
+        levelStartMs = System.currentTimeMillis() - (level-1)*LEVEL_DURATION_MS;
+    }
+
+    void applyPauseMenuAction() {
+        switch (pauseSel) {
+            case PAUSE_RESUME:   resumeGame(); break;
+            case PAUSE_RESTART:  paused = false; inSettings = false; newGame(); break;
+            case PAUSE_SETTINGS: inSettings = true; settingsSel = 0; break;
+            case PAUSE_MAINMENU: goToMainMenu(); break;
+        }
+    }
+
+    void applySettingAction() {
+        switch (settingsSel) {
+            case 0: // Mute
+                muted = !muted;
+                if (muted) SoundEngine.stopBGM(); else SoundEngine.startBGM();
+                break;
+            case 1: // Ghost piece
+                showGhost = !showGhost;
+                break;
+            case 2: // Speed — handled by left/right, enter does nothing extra
+                break;
+        }
+    }
+
+    void goToMainMenu() {
+        gameTmr.stop(); levelTmr.stop(); SoundEngine.stopBGM();
+        // Replace the game window with the main menu
+        JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
+        if (frame != null) frame.dispose();
+        SwingUtilities.invokeLater(() -> {
+            MainMenuDialog menu = new MainMenuDialog();
+            menu.setVisible(true);
+        });
     }
 
     void adjustLevel(int d) {
@@ -1487,13 +1568,13 @@ class GamePanel extends JPanel implements ActionListener {
         g2.setRenderingHint(RenderingHints.KEY_RENDERING,RenderingHints.VALUE_RENDER_QUALITY);
         g2.setColor(Color.BLACK); g2.fillRect(0,0,W,H);
         drawWatermark(g2); drawBoard(g2); drawBoxGlows(g2); drawShines(g2);
-        if(!gameOver){drawGhost(g2); drawActivePiece(g2);}
+        if(!gameOver){if(showGhost)drawGhost(g2); drawActivePiece(g2);}
         drawLockEffect(g2); drawParticles(g2); drawPopups(g2);
         drawPowerUpOverlays(g2);
         drawSidebar(g2);
         if(levelUpFlash) drawLevelUpOverlay(g2);
         if(gameOver) drawGameOverOverlay(g2);
-        if(paused)   drawOverlay(g2,"PAUSED","Press P to continue",new Color(90,105,255));
+        if(paused)   drawPauseMenu(g2);
     }
 
     void drawWatermark(Graphics2D g){
@@ -2013,6 +2094,189 @@ class GamePanel extends JPanel implements ActionListener {
         return new Color(Math.min(255,(int)(t*225+30)),Math.min(255,(int)((1f-t)*200+55)),22);
     }
 
+    // ── Rich pause menu ───────────────────────────────────────────
+    void drawPauseMenu(Graphics2D g) {
+        // Darkened board backdrop
+        g.setColor(new Color(0,0,0,200)); g.fillRect(PAD,PAD,BOARD_W,BOARD_H);
+
+        int cx = PAD + BOARD_W/2;
+        int cardW = Math.min(BOARD_W - 40, 320);
+        int cardX = cx - cardW/2;
+
+        if (inSettings) {
+            drawSettingsPanel(g, cx, cardX, cardW);
+        } else {
+            drawPauseMenuPanel(g, cx, cardX, cardW);
+        }
+    }
+
+    void drawPauseMenuPanel(Graphics2D g, int cx, int cardX, int cardW) {
+        // ── Card ──────────────────────────────────────────────────
+        int cardH = 250, cardY = PAD + BOARD_H/2 - cardH/2;
+        g.setColor(new Color(10, 10, 18));
+        g.fillRoundRect(cardX, cardY, cardW, cardH, 16, 16);
+        g.setColor(new Color(90,100,220)); g.setStroke(new BasicStroke(2f));
+        g.drawRoundRect(cardX, cardY, cardW, cardH, 16, 16);
+        g.setStroke(new BasicStroke(1f));
+
+        // Top accent bar
+        g.setColor(new Color(90,100,220));
+        g.fillRoundRect(cardX, cardY, cardW, 4, 16, 16);
+        g.fillRect(cardX, cardY+4, cardW, 4);  // fill the rounded top corners
+
+        // ── Title ─────────────────────────────────────────────────
+        g.setFont(new Font("Arial Black", Font.BOLD, 22));
+        FontMetrics fm = g.getFontMetrics();
+        g.setColor(new Color(80,80,120,60));
+        g.drawString("PAUSED", cx - fm.stringWidth("PAUSED")/2 + 2, cardY + 44 + 2);
+        g.setColor(new Color(140,150,255));
+        g.drawString("PAUSED", cx - fm.stringWidth("PAUSED")/2, cardY + 44);
+
+        // Score snapshot
+        g.setFont(new Font("Arial", Font.BOLD, 11)); g.setColor(new Color(100,105,160));
+        String snap = "Score " + score + "  •  Level " + level + "  •  Lines " + lines;
+        fm = g.getFontMetrics();
+        g.drawString(snap, cx - fm.stringWidth(snap)/2, cardY + 62);
+
+        // Divider
+        g.setColor(new Color(35,35,60)); g.fillRect(cardX+20, cardY+70, cardW-40, 1);
+
+        // ── Menu items ────────────────────────────────────────────
+        String[] labels = {"\u25b6  Resume",  "\u21ba  Restart", "\u2699  Settings", "\u2302  Main Menu"};
+        Color[]  colors = {new Color(80,220,110), new Color(255,200,60), new Color(120,180,255), new Color(220,100,100)};
+        int itemH = 40, itemY = cardY + 80;
+
+        for (int i = 0; i < labels.length; i++) {
+            boolean sel = (i == pauseSel);
+            int iy = itemY + i * itemH;
+
+            // Highlight background
+            if (sel) {
+                g.setColor(new Color(colors[i].getRed()/5, colors[i].getGreen()/5, colors[i].getBlue()/5, 180));
+                g.fillRoundRect(cardX+12, iy+3, cardW-24, itemH-6, 8, 8);
+                g.setColor(colors[i]); g.setStroke(new BasicStroke(1.5f));
+                g.drawRoundRect(cardX+12, iy+3, cardW-24, itemH-6, 8, 8);
+                g.setStroke(new BasicStroke(1f));
+                // Selection indicator triangle
+                g.setColor(colors[i]);
+                int[] tx = {cardX+16, cardX+22, cardX+16};
+                int[] ty = {iy+itemH/2-5, iy+itemH/2, iy+itemH/2+5};
+                g.fillPolygon(tx, ty, 3);
+            }
+
+            g.setFont(new Font("Arial Black", Font.BOLD, sel ? 14 : 13));
+            fm = g.getFontMetrics();
+            g.setColor(sel ? colors[i] : new Color(130,132,170));
+            g.drawString(labels[i], cx - fm.stringWidth(labels[i])/2, iy + itemH/2 + fm.getAscent()/2 - 2);
+        }
+
+        // ── Footer hint ───────────────────────────────────────────
+        g.setFont(new Font("Arial", Font.PLAIN, 10)); g.setColor(new Color(55,57,90));
+        String hint = "\u2191\u2193 navigate    Enter select    P / Esc resume";
+        fm = g.getFontMetrics();
+        g.drawString(hint, cx - fm.stringWidth(hint)/2, cardY + cardH - 10);
+    }
+
+    void drawSettingsPanel(Graphics2D g, int cx, int cardX, int cardW) {
+        int cardH = 230, cardY = PAD + BOARD_H/2 - cardH/2;
+
+        g.setColor(new Color(8, 10, 18));
+        g.fillRoundRect(cardX, cardY, cardW, cardH, 16, 16);
+        g.setColor(new Color(120,160,255)); g.setStroke(new BasicStroke(2f));
+        g.drawRoundRect(cardX, cardY, cardW, cardH, 16, 16);
+        g.setStroke(new BasicStroke(1f));
+
+        g.setColor(new Color(120,160,255));
+        g.fillRoundRect(cardX, cardY, cardW, 4, 16, 16);
+        g.fillRect(cardX, cardY+4, cardW, 4);
+
+        // Title
+        g.setFont(new Font("Arial Black", Font.BOLD, 18));
+        FontMetrics fm = g.getFontMetrics();
+        g.setColor(new Color(140,180,255));
+        g.drawString("\u2699  SETTINGS", cx - fm.stringWidth("\u2699  SETTINGS")/2, cardY + 38);
+
+        g.setColor(new Color(35,35,60)); g.fillRect(cardX+20, cardY+48, cardW-40, 1);
+
+        // ── Setting rows ──────────────────────────────────────────
+        // Row 0: Mute music
+        // Row 1: Ghost piece
+        // Row 2: Game speed
+        String[] rowLabels = {"Music", "Ghost piece", "Game speed"};
+        int rowH = 48, rowY = cardY + 58;
+
+        for (int i = 0; i < 3; i++) {
+            boolean sel = (i == settingsSel);
+            int ry = rowY + i * rowH;
+
+            if (sel) {
+                g.setColor(new Color(20,30,55,200));
+                g.fillRoundRect(cardX+10, ry+2, cardW-20, rowH-4, 8, 8);
+                g.setColor(new Color(100,150,255)); g.setStroke(new BasicStroke(1.5f));
+                g.drawRoundRect(cardX+10, ry+2, cardW-20, rowH-4, 8, 8);
+                g.setStroke(new BasicStroke(1f));
+            }
+
+            // Row label
+            g.setFont(new Font("Arial Black", Font.BOLD, 12));
+            g.setColor(sel ? new Color(180,210,255) : new Color(100,105,155));
+            g.drawString(rowLabels[i], cardX+24, ry+20);
+
+            // Row value / control
+            if (i == 0) {
+                // Mute toggle — pill button
+                drawToggle(g, cardX + cardW - 80, ry+8, !muted, new Color(80,220,100));
+                g.setFont(new Font("Arial", Font.PLAIN, 10)); g.setColor(new Color(80,85,130));
+                g.drawString("Enter to toggle", cardX+24, ry+36);
+            } else if (i == 1) {
+                // Ghost piece toggle
+                drawToggle(g, cardX + cardW - 80, ry+8, showGhost, new Color(80,180,255));
+                g.setFont(new Font("Arial", Font.PLAIN, 10)); g.setColor(new Color(80,85,130));
+                g.drawString("Enter to toggle", cardX+24, ry+36);
+            } else {
+                // Speed control — segmented bar + level number
+                int segCount = 10, segW2 = (cardW - 90) / segCount;
+                int barX = cardX + 24;
+                for (int s = 1; s <= segCount; s++) {
+                    float t = (s-1)/9f;
+                    Color sc = s <= level
+                        ? new Color(Math.min(255,(int)(t*225+30)), Math.min(255,(int)((1-t)*200+55)), 22)
+                        : new Color(22,22,34);
+                    g.setColor(sc);
+                    g.fillRect(barX + (s-1)*(segW2+2), ry+10, segW2, 10);
+                }
+                g.setFont(new Font("Arial Black", Font.BOLD, 18));
+                g.setColor(speedColor(level));
+                g.drawString(String.valueOf(level), cardX+cardW-60, ry+24);
+                g.setFont(new Font("Arial", Font.PLAIN, 10)); g.setColor(new Color(80,85,130));
+                g.drawString("\u2190\u2192 adjust speed", cardX+24, ry+36);
+            }
+        }
+
+        // Back hint
+        g.setFont(new Font("Arial", Font.PLAIN, 10)); g.setColor(new Color(55,57,90));
+        String hint = "Esc / Backspace \u2014 back to pause menu";
+        fm = g.getFontMetrics();
+        g.drawString(hint, cx - fm.stringWidth(hint)/2, cardY + cardH - 10);
+    }
+
+    // Draw an on/off toggle pill
+    void drawToggle(Graphics2D g, int x, int y, boolean on, Color onColor) {
+        int tw = 54, th = 24;
+        Color bg = on ? new Color(onColor.getRed()/4, onColor.getGreen()/4, onColor.getBlue()/4) : new Color(20,20,30);
+        g.setColor(bg); g.fillRoundRect(x, y, tw, th, th, th);
+        g.setColor(on ? onColor : new Color(60,62,90)); g.setStroke(new BasicStroke(1.5f));
+        g.drawRoundRect(x, y, tw, th, th, th); g.setStroke(new BasicStroke(1f));
+        // Knob
+        int knobX = on ? x + tw - th + 3 : x + 3;
+        g.setColor(on ? onColor : new Color(70,72,100));
+        g.fillOval(knobX, y+3, th-6, th-6);
+        // Label
+        g.setFont(new Font("Arial Black", Font.BOLD, 9));
+        g.setColor(on ? onColor : new Color(60,62,90));
+        g.drawString(on ? "ON" : "OFF", on ? x+6 : x+26, y+16);
+    }
+
     void drawOverlay(Graphics2D g,String title,String sub,Color clr){
         g.setColor(new Color(0,0,0,190)); g.fillRect(PAD,PAD,BOARD_W,BOARD_H);
         int cx=PAD+BOARD_W/2,cy=PAD+BOARD_H/2;
@@ -2025,49 +2289,62 @@ class GamePanel extends JPanel implements ActionListener {
     }
 
     void drawGameOverOverlay(Graphics2D g){
-        // Dark overlay
         g.setColor(new Color(0,0,0,210)); g.fillRect(PAD,PAD,BOARD_W,BOARD_H);
         int cx=PAD+BOARD_W/2, cy=PAD+BOARD_H/2;
 
-        // Card background
-        int cardW=BOARD_W-40, cardH=160, cardX=cx-cardW/2, cardY=cy-cardH/2;
+        int cardW=BOARD_W-40, cardH=180, cardX=cx-cardW/2, cardY=cy-cardH/2;
         g.setColor(new Color(14,8,10));
         g.fillRoundRect(cardX, cardY, cardW, cardH, 14, 14);
         g.setColor(new Color(180,30,30)); g.setStroke(new BasicStroke(2f));
         g.drawRoundRect(cardX, cardY, cardW, cardH, 14, 14);
         g.setStroke(new BasicStroke(1f));
+        // Top accent
+        g.setColor(new Color(180,30,30));
+        g.fillRoundRect(cardX, cardY, cardW, 4, 14, 14);
+        g.fillRect(cardX, cardY+4, cardW, 4);
 
-        // Title
         g.setFont(new Font("Arial Black",Font.BOLD,34));
         FontMetrics fm=g.getFontMetrics();
         String titleStr="GAME OVER";
-        g.setColor(new Color(180,30,30,60)); g.drawString(titleStr,cx-fm.stringWidth(titleStr)/2+2,cardY+46+2);
-        g.setColor(new Color(220,55,55)); g.drawString(titleStr,cx-fm.stringWidth(titleStr)/2,cardY+46);
+        g.setColor(new Color(180,30,30,60)); g.drawString(titleStr,cx-fm.stringWidth(titleStr)/2+2,cardY+48+2);
+        g.setColor(new Color(220,55,55)); g.drawString(titleStr,cx-fm.stringWidth(titleStr)/2,cardY+48);
 
-        // Score
         g.setFont(new Font("Arial Black",Font.BOLD,18)); fm=g.getFontMetrics();
         String scStr="Score  "+score;
         g.setColor(new Color(255,215,50));
-        g.drawString(scStr, cx-fm.stringWidth(scStr)/2, cardY+76);
+        g.drawString(scStr, cx-fm.stringWidth(scStr)/2, cardY+80);
 
-        // High score
         boolean isNew = score > 0 && score == TetriDoku.highScore;
         g.setFont(new Font("Arial",Font.BOLD,12)); fm=g.getFontMetrics();
-        String hsStr = isNew ? "🏆  New Best Score!" : "Best  " + TetriDoku.highScore;
+        String hsStr = isNew ? "\u2b50  New Best Score!" : "Best  " + TetriDoku.highScore;
         g.setColor(isNew ? new Color(255,200,0) : new Color(100,100,140));
-        g.drawString(hsStr, cx-fm.stringWidth(hsStr)/2, cardY+98);
+        g.drawString(hsStr, cx-fm.stringWidth(hsStr)/2, cardY+102);
 
-        // Level reached
         g.setFont(new Font("Arial",Font.PLAIN,11)); fm=g.getFontMetrics();
-        String lvStr="Reached Level "+level+"  •  Lines Cleared: "+lines;
+        String lvStr="Reached Level "+level+"  \u2022  Lines Cleared: "+lines;
         g.setColor(new Color(90,95,140));
-        g.drawString(lvStr, cx-fm.stringWidth(lvStr)/2, cardY+118);
+        g.drawString(lvStr, cx-fm.stringWidth(lvStr)/2, cardY+124);
 
-        // Restart hint
+        // Two action buttons — R to restart, Esc for menu
+        int btnY = cardY + 142, btnH = 26, btnGap = 10;
+        int btnW = (cardW - 48 - btnGap) / 2;
+        // Restart button
+        g.setColor(new Color(15,35,15));
+        g.fillRoundRect(cardX+20, btnY, btnW, btnH, 7, 7);
+        g.setColor(new Color(80,200,100)); g.setStroke(new BasicStroke(1.5f));
+        g.drawRoundRect(cardX+20, btnY, btnW, btnH, 7, 7); g.setStroke(new BasicStroke(1f));
         g.setFont(new Font("Arial Black",Font.BOLD,11)); fm=g.getFontMetrics();
-        String restart="Press  R  to Play Again";
-        g.setColor(new Color(80,200,100));
-        g.drawString(restart, cx-fm.stringWidth(restart)/2, cardY+148);
+        String rs="R  \u2014  Play Again";
+        g.drawString(rs, cardX+20+(btnW-fm.stringWidth(rs))/2, btnY+18);
+        // Main menu button
+        int btn2X = cardX+20+btnW+btnGap;
+        g.setColor(new Color(30,15,15));
+        g.fillRoundRect(btn2X, btnY, btnW, btnH, 7, 7);
+        g.setColor(new Color(200,80,80)); g.setStroke(new BasicStroke(1.5f));
+        g.drawRoundRect(btn2X, btnY, btnW, btnH, 7, 7); g.setStroke(new BasicStroke(1f));
+        g.setFont(new Font("Arial Black",Font.BOLD,11)); fm=g.getFontMetrics();
+        String mm="Esc  \u2014  Main Menu"; g.setColor(new Color(200,80,80));
+        g.drawString(mm, btn2X+(btnW-fm.stringWidth(mm))/2, btnY+18);
     }
 }
 

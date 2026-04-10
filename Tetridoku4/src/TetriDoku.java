@@ -11,6 +11,7 @@ import javax.sound.sampled.*;
 //  T E T R I D O K U  v13
 //  Rich pause menu: Resume | Restart | Settings | Main Menu
 //  Settings panel: mute, speed, ghost piece toggle
+//  v14: About Developers dialog (ⓘ button in main menu)
 // ================================================================
 
 public class TetriDoku extends JFrame {
@@ -105,12 +106,11 @@ class MainMenuDialog extends JFrame {
                 pieces[i][5] = rng.nextInt(4);
             }
 
-            // Build buttons
             setLayout(null);
 
-            JButton playBtn = makeMenuBtn("▶   PLAY GAME", new Color(30, 210, 100), new Color(0, 140, 60));
-            JButton tutBtn  = makeMenuBtn("📖   HOW TO PLAY", new Color(80, 160, 255), new Color(30, 80, 200));
-            JButton quitBtn = makeMenuBtn("✕   QUIT", new Color(200, 70, 70), new Color(130, 30, 30));
+            JButton playBtn = makeMenuBtn("\u25b6   PLAY GAME", new Color(30, 210, 100), new Color(0, 140, 60));
+            JButton tutBtn  = makeMenuBtn("\uD83D\uDCD6   HOW TO PLAY", new Color(80, 160, 255), new Color(30, 80, 200));
+            JButton quitBtn = makeMenuBtn("\u2715   QUIT", new Color(200, 70, 70), new Color(130, 30, 30));
 
             playBtn.setBounds(135, 310, 270, 52);
             tutBtn .setBounds(135, 374, 270, 52);
@@ -121,6 +121,37 @@ class MainMenuDialog extends JFrame {
             playBtn.addActionListener(e -> launch());
             tutBtn .addActionListener(e -> openTutorial());
             quitBtn.addActionListener(e -> System.exit(0));
+
+            // ── About Developers ⓘ button — bottom-right corner ──
+            JButton infoBtn = new JButton("i");
+            infoBtn.setBounds(504, 546, 28, 28);
+            infoBtn.setFont(new Font("Arial Black", Font.BOLD, 13));
+            infoBtn.setForeground(new Color(140, 150, 220));
+            infoBtn.setBackground(new Color(20, 20, 34));
+            infoBtn.setBorder(BorderFactory.createCompoundBorder(
+                    new javax.swing.border.LineBorder(new Color(60, 65, 120), 1, true),
+                    BorderFactory.createEmptyBorder(0, 0, 0, 0)
+            ));
+            infoBtn.setFocusPainted(false);
+            infoBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            infoBtn.setOpaque(true);
+            infoBtn.setToolTipText("About Developers");
+            infoBtn.addMouseListener(new MouseAdapter() {
+                public void mouseEntered(MouseEvent e) {
+                    infoBtn.setBackground(new Color(30, 30, 55));
+                    infoBtn.setForeground(new Color(180, 190, 255));
+                }
+                public void mouseExited(MouseEvent e) {
+                    infoBtn.setBackground(new Color(20, 20, 34));
+                    infoBtn.setForeground(new Color(140, 150, 220));
+                }
+            });
+            infoBtn.addActionListener(e -> {
+                AboutDevelopersDialog dlg = new AboutDevelopersDialog(
+                        SwingUtilities.getWindowAncestor(MenuPanel.this));
+                dlg.setVisible(true);
+            });
+            add(infoBtn);
         }
 
         JButton makeMenuBtn(String text, Color fg, Color border) {
@@ -129,13 +160,12 @@ class MainMenuDialog extends JFrame {
             b.setForeground(fg);
             b.setBackground(new Color(14, 14, 22));
             b.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(border, 2),
-                BorderFactory.createEmptyBorder(8, 24, 8, 24)
+                    BorderFactory.createLineBorder(border, 2),
+                    BorderFactory.createEmptyBorder(8, 24, 8, 24)
             ));
             b.setFocusPainted(false);
             b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             b.setOpaque(true);
-            // Hover effect
             b.addMouseListener(new MouseAdapter() {
                 Color origBg = new Color(14, 14, 22);
                 public void mouseEntered(MouseEvent e) { b.setBackground(new Color(24, 24, 38)); }
@@ -154,17 +184,12 @@ class MainMenuDialog extends JFrame {
             long now = System.currentTimeMillis();
             float t = (now - startMs) / 1000f;
 
-            // Background gradient
             GradientPaint gp = new GradientPaint(0, 0, new Color(6, 6, 14), 0, getHeight(), new Color(10, 8, 20));
             g2.setPaint(gp); g2.fillRect(0, 0, getWidth(), getHeight());
 
-            // Draw floating mini pieces in background
             drawFloatingPieces(g2, t);
-
-            // Logo glow
             drawLogoSection(g2, t);
 
-            // High score if set
             if (TetriDoku.highScore > 0) {
                 g2.setFont(new Font("Arial Black", Font.BOLD, 13));
                 String hs = "BEST  " + TetriDoku.highScore;
@@ -177,11 +202,15 @@ class MainMenuDialog extends JFrame {
             // Version tag
             g2.setFont(new Font("Arial", Font.PLAIN, 10));
             g2.setColor(new Color(40, 40, 65));
-            g2.drawString("v10", getWidth() - 30, getHeight() - 8);
+            g2.drawString("v13", getWidth() - 30, getHeight() - 8);
+
+            // ⓘ hint label beside the button
+            g2.setFont(new Font("Arial", Font.PLAIN, 9));
+            g2.setColor(new Color(45, 48, 80));
+            g2.drawString("About", 470, 558);
         }
 
         void drawFloatingPieces(Graphics2D g, float t) {
-            // Update positions
             for (float[] p : pieces) {
                 p[0] += p[2]; p[1] += p[3];
                 if (p[0] < -60 || p[0] > getWidth() + 60) p[2] *= -1;
@@ -207,7 +236,6 @@ class MainMenuDialog extends JFrame {
         void drawLogoSection(Graphics2D g, float t) {
             int cx = getWidth() / 2;
 
-            // Pulsing glow behind title
             float pulse = (float)(Math.sin(t * 1.4) * 0.15 + 0.85);
             Composite old = g.getComposite();
             g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.12f * pulse));
@@ -215,29 +243,23 @@ class MainMenuDialog extends JFrame {
             g.fillOval(cx - 170, 60, 340, 110);
             g.setComposite(old);
 
-            // T E T R I D O K U
             g.setFont(new Font("Arial Black", Font.BOLD, 56));
             FontMetrics fm = g.getFontMetrics();
             int tw = fm.stringWidth("TETRIDOKU");
-            // Shadow
             g.setColor(new Color(0, 180, 200, 60));
             g.drawString("TETRIDOKU", cx - tw / 2 + 3, 120 + 3);
-            // Main gradient letter effect
             g.setPaint(new GradientPaint(cx - tw / 2, 70, new Color(0, 230, 255), cx + tw / 2, 120, new Color(0, 170, 230)));
             g.drawString("TETRIDOKU", cx - tw / 2, 120);
 
-            // Tagline
             g.setFont(new Font("Arial", Font.ITALIC, 15));
-            String tag = "Tetris  ×  Sudoku  —  two classics, one game";
+            String tag = "Tetris  \u00d7  Sudoku  \u2014  two classics, one game";
             fm = g.getFontMetrics();
             g.setColor(new Color(100, 108, 168));
             g.drawString(tag, cx - fm.stringWidth(tag) / 2, 148);
 
-            // Divider
             g.setColor(new Color(30, 30, 50));
             g.fillRect(80, 162, getWidth() - 160, 1);
 
-            // Mini piece color strip
             Color[] clrs = GamePanel.PIECE_CLR;
             int stripW = 28, gap = 6, total = clrs.length * (stripW + gap) - gap;
             int sx = cx - total / 2;
@@ -248,8 +270,7 @@ class MainMenuDialog extends JFrame {
                 g.fillRoundRect(sx + i * (stripW + gap), 172, stripW, 10, 4, 4);
             }
 
-            // Feature tags
-            String[] tags = {"🎮 Falling Pieces", "🔢 Sudoku Rules", "🏆 High Scores", "🎵 Live Music"};
+            String[] tags = {"\uD83C\uDFAE Falling Pieces", "\uD83D\uDD22 Sudoku Rules", "\uD83C\uDFC6 High Scores", "\uD83C\uDFB5 Live Music"};
             g.setFont(new Font("Arial", Font.PLAIN, 11));
             fm = g.getFontMetrics();
             int tagY = 210;
@@ -268,12 +289,215 @@ class MainMenuDialog extends JFrame {
                 tagX += tw2 + 6;
             }
 
-            // "Use keyboard to play" hint
             g.setFont(new Font("Arial", Font.PLAIN, 11));
-            String hint = "Keyboard controlled — best on desktop";
+            String hint = "Keyboard controlled \u2014 best on desktop";
             fm = g.getFontMetrics();
             g.setColor(new Color(50, 52, 85));
             g.drawString(hint, cx - fm.stringWidth(hint) / 2, 246);
+        }
+    }
+}
+
+// ================================================================
+//  A B O U T   D E V E L O P E R S   D I A L O G
+// ================================================================
+class AboutDevelopersDialog extends JDialog {
+
+    AboutDevelopersDialog(Window owner) {
+        super(owner, "About Developers", ModalityType.APPLICATION_MODAL);
+        setSize(440, 530);
+        setLocationRelativeTo(owner);
+        setResizable(false);
+        setBackground(new Color(10, 10, 18));
+        AboutPanel panel = new AboutPanel();
+        setContentPane(panel);
+        // Close on Escape
+        panel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close");
+        panel.getActionMap().put("close", new AbstractAction() {
+            public void actionPerformed(ActionEvent e) { dispose(); }
+        });
+    }
+
+    static class AboutPanel extends JPanel {
+
+        private static final Color BG       = new Color(10, 10, 18);
+        private static final Color CARD_BG  = new Color(16, 16, 28);
+        private static final Color BORDER   = new Color(40, 42, 72);
+        private static final Color MUTED    = new Color(90, 93, 140);
+        private static final Color TEXT     = new Color(210, 215, 255);
+
+        // Per-developer accent colours  [blue, teal, purple]
+        private static final Color[] ACCENTS = {
+                new Color(70, 140, 255),
+                new Color(50, 200, 140),
+                new Color(160, 100, 255),
+        };
+
+        // Developer data: [0]=name, [1]=role, [2..n]=bullet points
+        private static final String[][] DEVS = {
+                {
+                        "Bermeo, Manuelito",
+                        "Lead Game Designer & Developer",
+                        "Created the game's look and interface",
+                        "Designed how the blocks appear on screen",
+                        "Set up keyboard controls",
+                        "Managed levels and difficulty"
+                },
+                {
+                        "Romaraog, Rojan Ace",
+                        "Front-End Developer & QA",
+                        "Wrote instructions and documentation",
+                        "Helped the team stay on track",
+                        "Created the main menu of the game"
+                },
+                {
+                        "Soriano, Marc Joseph",
+                        "Systems Architect & Logic Lead",
+                        "Planned how the game works overall",
+                        "Built the main game system and timing",
+                        "Made pieces move, rotate, and detect collisions",
+                        "Helped with troubleshooting"
+                }
+        };
+
+        AboutPanel() {
+            setBackground(BG);
+            setOpaque(true);
+            setFocusable(true);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g0) {
+            super.paintComponent(g0);
+            Graphics2D g = (Graphics2D) g0;
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,     RenderingHints.VALUE_ANTIALIAS_ON);
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
+
+            int W = getWidth();
+            int px = 18;       // horizontal padding
+
+            // ── Header bar ───────────────────────────────────────
+            g.setColor(new Color(18, 18, 30));
+            g.fillRect(0, 0, W, 54);
+            // top accent line
+            g.setColor(new Color(90, 100, 220));
+            g.fillRect(0, 0, W, 3);
+
+            // Circle "i" icon
+            int ic = 34, ix = px, iy = 10;
+            g.setColor(new Color(25, 30, 75));
+            g.fillOval(ix, iy, ic, ic);
+            g.setColor(new Color(90, 110, 255));
+            g.setStroke(new BasicStroke(1.5f));
+            g.drawOval(ix, iy, ic, ic);
+            g.setStroke(new BasicStroke(1f));
+            g.setFont(new Font("Arial Black", Font.BOLD, 15));
+            FontMetrics fm = g.getFontMetrics();
+            g.setColor(new Color(160, 170, 255));
+            g.drawString("i", ix + ic/2 - fm.stringWidth("i")/2, iy + ic/2 + fm.getAscent()/2 - 2);
+
+            // Header text
+            g.setFont(new Font("Arial Black", Font.BOLD, 15));
+            g.setColor(TEXT);
+            g.drawString("About the Developers", px + ic + 10, 26);
+            g.setFont(new Font("Arial", Font.PLAIN, 11));
+            g.setColor(MUTED);
+            g.drawString("TetriDoku \u2014 development team", px + ic + 10, 42);
+
+            // Thin divider
+            g.setColor(new Color(30, 32, 58));
+            g.fillRect(0, 54, W, 1);
+
+            int y = 62;
+
+            // ── Developer cards ───────────────────────────────────
+            for (int d = 0; d < DEVS.length; d++) {
+                String[] info   = DEVS[d];
+                Color    accent = ACCENTS[d];
+                String   name   = info[0];
+                String   role   = info[1];
+                int      bullets = info.length - 2;
+
+                // Card height: top name area (44) + divider (1) + bullets
+                int cardH = 50 + bullets * 18 + 12;
+
+                // Card background + border
+                g.setColor(CARD_BG);
+                g.fillRoundRect(px, y, W - px*2, cardH, 10, 10);
+                g.setColor(BORDER);
+                g.setStroke(new BasicStroke(1f));
+                g.drawRoundRect(px, y, W - px*2, cardH, 10, 10);
+
+                // Left colour strip
+                g.setColor(accent);
+                g.fillRoundRect(px, y, 4, cardH, 4, 4);
+                g.fillRect(px + 2, y, 2, cardH);   // flatten right edge of strip
+
+                int inner = px + 14;
+
+                // Avatar circle
+                int av = 32, avx = inner, avy = y + 9;
+                Color avBg = new Color(accent.getRed()/7, accent.getGreen()/7, accent.getBlue()/7 + 8);
+                g.setColor(avBg);
+                g.fillOval(avx, avy, av, av);
+                g.setColor(accent.darker());
+                g.setStroke(new BasicStroke(1f));
+                g.drawOval(avx, avy, av, av);
+
+                // Initials  (first char of surname + first char of given name)
+                String[] parts = name.split(", ");
+                String initials = "" + parts[0].charAt(0) + (parts.length > 1 ? parts[1].charAt(0) : "");
+                g.setFont(new Font("Arial Black", Font.BOLD, 11));
+                fm = g.getFontMetrics();
+                g.setColor(accent);
+                g.drawString(initials,
+                        avx + av/2 - fm.stringWidth(initials)/2,
+                        avy + av/2 + fm.getAscent()/2 - 2);
+
+                int tx = avx + av + 8;
+
+                // Name
+                g.setFont(new Font("Arial Black", Font.BOLD, 12));
+                g.setColor(TEXT);
+                g.drawString(name, tx, y + 22);
+
+                // Role (accent-tinted)
+                Color roleClr = new Color(
+                        Math.min(255, accent.getRed()/2 + 70),
+                        Math.min(255, accent.getGreen()/2 + 70),
+                        Math.min(255, accent.getBlue()/2 + 70));
+                g.setFont(new Font("Arial", Font.PLAIN, 10));
+                g.setColor(roleClr);
+                g.drawString(role, tx, y + 36);
+
+                // Divider inside card
+                int divY = y + 46;
+                g.setColor(BORDER);
+                g.fillRect(inner, divY, W - inner - px, 1);
+
+                // Bullet points
+                int by2 = divY + 14;
+                g.setFont(new Font("Arial", Font.PLAIN, 11));
+                for (int b = 2; b < info.length; b++) {
+                    // Dot
+                    g.setColor(accent);
+                    g.fillOval(inner + 2, by2 - 5, 4, 4);
+                    // Text
+                    g.setColor(MUTED);
+                    g.drawString(info[b], inner + 12, by2);
+                    by2 += 18;
+                }
+
+                y += cardH + 8;
+            }
+
+            // ── Footer ───────────────────────────────────────────
+            g.setFont(new Font("Arial", Font.PLAIN, 10));
+            g.setColor(new Color(42, 44, 72));
+            String footer = "Press Esc or close this window to return";
+            fm = g.getFontMetrics();
+            g.drawString(footer, W/2 - fm.stringWidth(footer)/2, getHeight() - 8);
         }
     }
 }
@@ -300,23 +524,22 @@ class TutorialDialog extends JDialog {
         tutPanel.setPreferredSize(new Dimension(760, 500));
         add(tutPanel, BorderLayout.CENTER);
 
-        // Bottom button bar
         JPanel btnBar = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 10));
         btnBar.setBackground(new Color(8, 8, 12));
         btnBar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(40, 40, 60)));
 
-        JButton prevBtn = makeBtn("◀  Back", new Color(180, 185, 230));
-        JButton nextBtn = makeBtn("Next  ▶", new Color(180, 185, 230));
-        JButton playBtn = makeBtn("▶  PLAY NOW!", new Color(80, 255, 120));
+        JButton prevBtn = makeBtn("\u25c4  Back", new Color(180, 185, 230));
+        JButton nextBtn = makeBtn("Next  \u25ba", new Color(180, 185, 230));
+        JButton playBtn = makeBtn("\u25ba  PLAY NOW!", new Color(80, 255, 120));
         playBtn.setFont(new Font("Arial Black", Font.BOLD, 14));
 
-        JButton backToMenuBtn = makeBtn("← Main Menu", new Color(120, 125, 175));
+        JButton backToMenuBtn = makeBtn("\u2190 Main Menu", new Color(120, 125, 175));
 
         prevBtn.addActionListener(e -> { if (currentPage > 0) { currentPage--; tutPanel.repaint(); updateButtons(prevBtn, nextBtn, playBtn); } });
         nextBtn.addActionListener(e -> { if (currentPage < PAGES - 1) { currentPage++; tutPanel.repaint(); updateButtons(prevBtn, nextBtn, playBtn); } });
         playBtn.addActionListener(e -> { play = true; dispose(); });
 
-        JButton skipBtn = makeBtn("Skip →", new Color(80, 80, 110));
+        JButton skipBtn = makeBtn("Skip \u2192", new Color(80, 80, 110));
         skipBtn.addActionListener(e -> { play = true; dispose(); });
 
         if (showReturnToMenu) btnBar.add(backToMenuBtn);
@@ -330,7 +553,6 @@ class TutorialDialog extends JDialog {
         setLocationRelativeTo(null);
     }
 
-    // Legacy constructor
     TutorialDialog(Frame owner) { this(owner, false); }
 
     private JButton makeBtn(String label, Color fg) {
@@ -356,7 +578,6 @@ class TutorialDialog extends JDialog {
 
     boolean shouldPlay() { return play; }
 
-    // ── Inner panel that draws each tutorial page ────────────────
     class TutorialPanel extends JPanel {
         TutorialPanel() { setBackground(new Color(8, 8, 12)); }
 
@@ -372,18 +593,16 @@ class TutorialDialog extends JDialog {
                 case 0: drawPage0(g2); break;
                 case 1: drawPage1(g2); break;
                 case 2: drawPage2(g2); break;
-                case 3: drawPage4(g2); break;   // power-ups first
-                case 4: drawPage3(g2); break;   // then levels
+                case 3: drawPage4(g2); break;
+                case 4: drawPage3(g2); break;
             }
             drawPageDots(g2);
         }
 
-        // ── Per-page background art ───────────────────────────────
         void drawPageBackground(Graphics2D g, int page) {
             int W = getWidth(), H = getHeight();
             Composite old = g.getComposite();
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
             switch (page) {
                 case 0: drawBgIntro(g, W, H); break;
                 case 1: drawBgControls(g, W, H); break;
@@ -394,14 +613,12 @@ class TutorialDialog extends JDialog {
             g.setComposite(old);
         }
 
-        // BG 0 — Intro: faint falling tetromino silhouettes + digit grid
         void drawBgIntro(Graphics2D g, int W, int H) {
             Composite old = g.getComposite();
-            // Subtle digit grid
             g.setFont(new Font("Arial", Font.BOLD, 13));
             int[] digits = {1,2,3,4,5,6,7,8,9};
             Color[] dclrs = {new Color(0,215,230), new Color(240,200,0), new Color(160,0,220),
-                             new Color(20,200,55),  new Color(220,30,30), new Color(20,80,220), new Color(220,115,0)};
+                    new Color(20,200,55), new Color(220,30,30), new Color(20,80,220), new Color(220,115,0)};
             java.util.Random rng = new java.util.Random(77);
             for (int col = 0; col < W; col += 38) {
                 for (int row = 0; row < H; row += 38) {
@@ -412,7 +629,6 @@ class TutorialDialog extends JDialog {
                     g.drawString(String.valueOf(d), col + rng.nextInt(12), row + rng.nextInt(12));
                 }
             }
-            // Faint tetromino block silhouettes in corners
             g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.06f));
             drawSilhouette(g, 10, H-80, new int[][]{{0,0},{0,1},{0,2},{0,3}}, new Color(0,215,230), 18);
             drawSilhouette(g, W-85, 20, new int[][]{{0,0},{0,1},{1,0},{1,1}}, new Color(240,200,0), 18);
@@ -421,11 +637,9 @@ class TutorialDialog extends JDialog {
             g.setComposite(old);
         }
 
-        // BG 1 — Controls: faint keyboard rows hinting at keys
         void drawBgControls(Graphics2D g, int W, int H) {
             Composite old = g.getComposite();
             g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.04f));
-            // Ghosted key grid top-right corner
             String[] keys = {"Q","W","E","R","T","A","S","D","F","G","Z","X","C","V","B"};
             g.setFont(new Font("Arial Black", Font.BOLD, 11));
             int kx = W - 120, ky = H - 100;
@@ -438,14 +652,12 @@ class TutorialDialog extends JDialog {
                 FontMetrics fm = g.getFontMetrics();
                 g.drawString(keys[i], bx+(18-fm.stringWidth(keys[i]))/2, by+13);
             }
-            // Faint horizontal scan lines
             g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.025f));
             g.setColor(new Color(60,80,180));
             for (int y = 0; y < H; y += 6) g.fillRect(0, y, W, 1);
             g.setComposite(old);
         }
 
-        // BG 2 — Scoring: faint 9x18 board grid with a few glowing cells
         void drawBgScoring(Graphics2D g, int W, int H) {
             Composite old = g.getComposite();
             int cellSz = 28, cols = 9, rows = 8;
@@ -456,7 +668,6 @@ class TutorialDialog extends JDialog {
             for (int r = 0; r < rows; r++)
                 for (int c = 0; c < cols; c++)
                     g.drawRect(gx + c*cellSz, gy + r*cellSz, cellSz, cellSz);
-            // A few accent cells
             Color[] glows = {new Color(0,215,230,60), new Color(240,200,0,50), new Color(80,210,80,55), new Color(220,70,70,45)};
             int[][] lit = {{1,2},{2,5},{4,1},{3,7},{5,4},{6,2},{0,8}};
             g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.12f));
@@ -467,11 +678,9 @@ class TutorialDialog extends JDialog {
             g.setComposite(old);
         }
 
-        // BG 3 — Power-ups: starfield + faint energy rings
         void drawBgPowerUps(Graphics2D g, int W, int H) {
             Composite old = g.getComposite();
             java.util.Random rng = new java.util.Random(42);
-            // Stars
             g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.35f));
             for (int i = 0; i < 80; i++) {
                 int sx = rng.nextInt(W), sy = rng.nextInt(H);
@@ -480,7 +689,6 @@ class TutorialDialog extends JDialog {
                 g.setColor(new Color(bright, bright, bright * 1.3f > 1f ? 1f : bright * 1.3f));
                 g.fillOval(sx, sy, sz, sz);
             }
-            // Subtle energy rings behind each card position
             Color[] ringClrs = {new Color(100,200,255,18), new Color(255,175,40,18), new Color(220,80,200,18)};
             int[] ringYs = {130, 260, 390};
             g.setStroke(new BasicStroke(18f));
@@ -493,7 +701,6 @@ class TutorialDialog extends JDialog {
             g.setComposite(old);
         }
 
-        // BG 4 — Levels: speed lines radiating from center-left
         void drawBgLevels(Graphics2D g, int W, int H) {
             Composite old = g.getComposite();
             g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.055f));
@@ -506,9 +713,7 @@ class TutorialDialog extends JDialog {
                 int endX = (int)(ox + Math.cos(angle) * len);
                 int endY = (int)(oy + Math.sin(angle) * len);
                 float t = i / 31f;
-                g.setColor(new Color(
-                    Math.min(255,(int)(t*200+55)),
-                    Math.min(255,(int)((1f-t)*180+55)), 20));
+                g.setColor(new Color(Math.min(255,(int)(t*200+55)), Math.min(255,(int)((1f-t)*180+55)), 20));
                 g.setStroke(new BasicStroke(width, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
                 g.drawLine(ox, oy, endX, endY);
             }
@@ -516,7 +721,6 @@ class TutorialDialog extends JDialog {
             g.setComposite(old);
         }
 
-        // Helper: draw a tetromino silhouette (filled blocks only, no text)
         void drawSilhouette(Graphics2D g, int ox, int oy, int[][] cells, Color clr, int sz) {
             g.setColor(clr);
             for (int[] c : cells)
@@ -532,149 +736,114 @@ class TutorialDialog extends JDialog {
             }
         }
 
-        // Page 0: Welcome + concept
         void drawPage0(Graphics2D g) {
             int W = getWidth(), H = getHeight();
-            // Reserve 28px at bottom for dots, 8px padding top
             int drawH = H - 28;
-
-            // ── Title block ──────────────────────────────────────
             int titleY = 20;
             g.setFont(new Font("Arial Black", Font.BOLD, 32));
             drawShadowText(g, "TETRIDOKU", W / 2, titleY + 26, new Color(0, 215, 230), 3);
-
             g.setFont(new Font("Arial", Font.ITALIC, 13));
-            drawCenteredText(g, "Tetris  \u00d7  Sudoku  \u2014  two classics, one game",
-                    W / 2, titleY + 48, new Color(140, 145, 190));
-
+            drawCenteredText(g, "Tetris  \u00d7  Sudoku  \u2014  two classics, one game", W / 2, titleY + 48, new Color(140, 145, 190));
             int divY = titleY + 56;
             g.setColor(new Color(35, 35, 55));
             g.fillRect(32, divY, W - 64, 1);
-
-            // ── Two columns ──────────────────────────────────────
-            // Total available height for boxes + note: drawH - divY - 6
-            int boxTop   = divY + 8;
-            int noteH    = 18;     // note text at bottom
-            int boxH     = drawH - boxTop - noteH - 6;  // whatever remains
-            boxH         = Math.min(boxH, 210);          // cap so it's never too tall
-
-            int margin   = 20;
-            int midGap   = 30;    // gap between boxes (where × lives)
-            int bw       = (W - margin * 2 - midGap) / 2;
-            int leftX    = margin;
-            int rightX   = margin + bw + midGap;
-
-            // ── Left box: Tetris ─────────────────────────────────
+            int boxTop = divY + 8, noteH = 18;
+            int boxH = drawH - boxTop - noteH - 6;
+            boxH = Math.min(boxH, 210);
+            int margin = 20, midGap = 30;
+            int bw = (W - margin * 2 - midGap) / 2;
+            int leftX = margin, rightX = margin + bw + midGap;
             drawBox(g, leftX, boxTop, bw, boxH, new Color(0, 215, 230), "TETRIS SIDE");
             String[] tetLines = {
-                "\u2022 Pieces fall from above",
-                "\u2022 7 classic tetromino shapes",
-                "\u2022 Rotate (\u2191/Z) & move (\u2190\u2192)",
-                "\u2022 Hard drop with Space",
-                "\u2022 Speed increases per level"
+                    "\u2022 Pieces fall from above",
+                    "\u2022 7 classic tetromino shapes",
+                    "\u2022 Rotate (\u2191/Z) & move (\u2190\u2192)",
+                    "\u2022 Hard drop with Space",
+                    "\u2022 Speed increases per level"
             };
             int lineH = 20, textTop = boxTop + 40;
             drawBoxLines(g, leftX + 12, textTop, tetLines, new Color(160, 220, 235));
-
-            // Mini piece — only draw if there's room
             int miniTop = textTop + tetLines.length * lineH + 4;
-            if (miniTop + 16 < boxTop + boxH - 4) {
-                drawMiniPiece(g, leftX + 12, miniTop,
-                    new int[][]{{0,0},{0,1},{0,2},{0,3}}, new Color(0, 215, 230));
-            }
-
-            // ── × symbol — exactly centered horizontally and vertically in mid gap ──
-            int crossX = leftX + bw + midGap / 2;   // horizontal center of gap
-            int crossY = boxTop + boxH / 2 + 9;      // vertical center of box
+            if (miniTop + 16 < boxTop + boxH - 4)
+                drawMiniPiece(g, leftX + 12, miniTop, new int[][]{{0,0},{0,1},{0,2},{0,3}}, new Color(0, 215, 230));
+            int crossX = leftX + bw + midGap / 2;
+            int crossY = boxTop + boxH / 2 + 9;
             g.setFont(new Font("Arial Black", Font.BOLD, 24));
             FontMetrics crossFm = g.getFontMetrics();
             g.setColor(new Color(0, 0, 0, 80));
             g.drawString("\u00d7", crossX - crossFm.stringWidth("\u00d7")/2 + 2, crossY + 2);
             g.setColor(Color.WHITE);
             g.drawString("\u00d7", crossX - crossFm.stringWidth("\u00d7")/2, crossY);
-
-            // ── Right box: Sudoku ────────────────────────────────
             drawBox(g, rightX, boxTop, bw, boxH, new Color(240, 200, 0), "SUDOKU SIDE");
             String[] sudLines = {
-                "\u2022 Each cell holds a digit (1\u20139)",
-                "\u2022 No repeats in any row/column",
-                "\u2022 Fill a 3\u00d73 box for bonus pts",
-                "\u2022 Use Q/E to reorder digits",
-                "\u2022 Conflicts glow red \u2014 avoid!"
+                    "\u2022 Each cell holds a digit (1\u20139)",
+                    "\u2022 No repeats in any row/column",
+                    "\u2022 Fill a 3\u00d73 box for bonus pts",
+                    "\u2022 Use Q/E to reorder digits",
+                    "\u2022 Conflicts glow red \u2014 avoid!"
             };
             drawBoxLines(g, rightX + 12, textTop, sudLines, new Color(240, 225, 160));
-
-            // Mini sudoku grid — only if room
             int gridTop = textTop + sudLines.length * lineH + 4;
             if (gridTop + 62 < boxTop + boxH - 4) {
                 int[] sudNums = {3,7,1,9,2,5,4,6,8};
                 Color[] sudColors = {new Color(0,215,230), new Color(240,200,0), new Color(160,0,220)};
                 for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++) {
-                    int gx = rightX + 12 + j * 20, gy = gridTop + i * 20;
-                    g.setColor(new Color(20,20,30)); g.fillRect(gx, gy, 19, 19);
-                    g.setColor(new Color(40,40,55)); g.drawRect(gx, gy, 19, 19);
+                    int gx2 = rightX + 12 + j * 20, gy2 = gridTop + i * 20;
+                    g.setColor(new Color(20,20,30)); g.fillRect(gx2, gy2, 19, 19);
+                    g.setColor(new Color(40,40,55)); g.drawRect(gx2, gy2, 19, 19);
                     g.setFont(new Font("Arial", Font.BOLD, 11));
                     g.setColor(sudColors[j]);
                     FontMetrics fm = g.getFontMetrics();
                     String n = String.valueOf(sudNums[i*3+j]);
-                    g.drawString(n, gx+(19-fm.stringWidth(n))/2, gy+14);
+                    g.drawString(n, gx2+(19-fm.stringWidth(n))/2, gy2+14);
                 }
             }
-
-            // ── Bottom note ──────────────────────────────────────
             g.setFont(new Font("Arial", Font.PLAIN, 11));
             drawCenteredText(g, "Place pieces strategically \u2014 Tetris skill AND Sudoku thinking matter!",
                     W/2, boxTop + boxH + 14, new Color(90, 95, 140));
         }
 
-        // Page 1: Controls
         void drawPage1(Graphics2D g) {
             int W = getWidth();
             g.setFont(new Font("Arial Black", Font.BOLD, 24));
             drawShadowText(g, "CONTROLS", W/2, 40, new Color(100, 200, 255), 2);
             g.setColor(new Color(35, 35, 55)); g.fillRect(40, 50, W - 80, 1);
-
             String[][] controls = {
-                {"\u2190  \u2192",     "Move piece left / right"},
-                {"\u2191  or  Z",      "Rotate clockwise / counter-clockwise"},
-                {"\u2193",             "Soft drop  (+1 point per row)"},
-                {"Space",              "Hard drop instantly  (+2 pts per row)"},
-                {"Q  /  E",            "Cycle digit order on active piece"},
-                {"F",                  "Time Freeze \u2014 stops auto-drop (8s)"},
-                {"S",                  "Slow-Mo \u2014 halves fall speed (15s)"},
-                {"B",                  "Clear Bomb \u2014 blasts bottom 3 rows"},
-                {"\u2013  /  =",       "Decrease / Increase speed manually"},
-                {"M",                  "Mute / unmute music"},
-                {"P",                  "Pause game"},
-                {"R",                  "Restart from scratch"},
+                    {"\u2190  \u2192",    "Move piece left / right"},
+                    {"\u2191  or  Z",     "Rotate clockwise / counter-clockwise"},
+                    {"\u2193",            "Soft drop  (+1 point per row)"},
+                    {"Space",             "Hard drop instantly  (+2 pts per row)"},
+                    {"Q  /  E",           "Cycle digit order on active piece"},
+                    {"F",                 "Time Freeze \u2014 stops auto-drop (8s)"},
+                    {"S",                 "Slow-Mo \u2014 halves fall speed (15s)"},
+                    {"B",                 "Clear Bomb \u2014 blasts bottom 3 rows"},
+                    {"\u2013  /  =",      "Decrease / Increase speed manually"},
+                    {"M",                 "Mute / unmute music"},
+                    {"P",                 "Pause game"},
+                    {"R",                 "Restart from scratch"},
             };
-
             Color[] catColors = {
-                new Color(0,215,230), new Color(0,215,230), new Color(0,215,230), new Color(0,215,230),
-                new Color(240,200,0),
-                new Color(100,200,255), new Color(255,175,40), new Color(220,80,200),
-                new Color(80,160,80),
-                new Color(160,200,255), new Color(160,160,200), new Color(220,80,80)
+                    new Color(0,215,230), new Color(0,215,230), new Color(0,215,230), new Color(0,215,230),
+                    new Color(240,200,0),
+                    new Color(100,200,255), new Color(255,175,40), new Color(220,80,200),
+                    new Color(80,160,80),
+                    new Color(160,200,255), new Color(160,160,200), new Color(220,80,80)
             };
-
             int startY = 58, rowH = 36;
             for (int i = 0; i < controls.length; i++) {
                 int rowY = startY + i * rowH;
                 g.setColor(i % 2 == 0 ? new Color(15,15,22) : new Color(11,11,17));
                 g.fillRect(24, rowY, W - 48, rowH - 2);
                 g.setColor(catColors[i]); g.fillRect(24, rowY, 4, rowH - 2);
-                // Key badge
                 g.setColor(new Color(20,20,30)); g.fillRoundRect(34, rowY+4, 118, 24, 6, 6);
                 g.setColor(catColors[i]); g.setStroke(new BasicStroke(1.5f));
                 g.drawRoundRect(34, rowY+4, 118, 24, 6, 6); g.setStroke(new BasicStroke(1f));
                 g.setFont(new Font("Courier New", Font.BOLD, 12));
                 FontMetrics fm = g.getFontMetrics();
                 g.drawString(controls[i][0], 34+(118-fm.stringWidth(controls[i][0]))/2, rowY+21);
-                // Description
                 g.setFont(new Font("Arial", Font.PLAIN, 12)); g.setColor(new Color(170,175,215));
                 g.drawString(controls[i][1], 162, rowY+21);
             }
-
             int tipY = startY + controls.length * rowH + 4;
             if (tipY + 30 < getHeight() - 20) {
                 g.setColor(new Color(15,22,15)); g.fillRoundRect(24, tipY, W-48, 28, 8, 8);
@@ -685,21 +854,18 @@ class TutorialDialog extends JDialog {
             }
         }
 
-        // Page 2: Scoring
         void drawPage2(Graphics2D g) {
             int W = getWidth();
             g.setFont(new Font("Arial Black", Font.BOLD, 24));
             drawShadowText(g, "SCORING", W/2, 44, new Color(255, 210, 55), 2);
             g.setColor(new Color(35, 35, 55)); g.fillRect(50, 54, W - 100, 1);
-
             Object[][] scores = {
-                {"Soft drop",         "+1 per row",              new Color(160,165,200), "Move piece down one row manually"},
-                {"Hard drop",         "+2 × rows fallen",        new Color(0,215,230),   "Instantly drop — double the reward"},
-                {"Unique digit clear","40 × Level per cell",     new Color(80,210,80),   "Clear cells where each digit appears once only"},
-                {"3×3 Box complete",  "+1,000 × Level",          new Color(255,210,55),  "Fill any 3×3 zone with all 9 unique digits"},
-                {"Repeated digit",    "0 pts — stays on board",  new Color(220,70,70),   "Duplicate digits in a row/col stay & block you"},
+                    {"Soft drop",         "+1 per row",              new Color(160,165,200), "Move piece down one row manually"},
+                    {"Hard drop",         "+2 \u00d7 rows fallen",   new Color(0,215,230),   "Instantly drop \u2014 double the reward"},
+                    {"Unique digit clear","40 \u00d7 Level per cell", new Color(80,210,80),  "Clear cells where each digit appears once only"},
+                    {"3\u00d73 Box complete","+1,000 \u00d7 Level",  new Color(255,210,55),  "Fill any 3\u00d73 zone with all 9 unique digits"},
+                    {"Repeated digit",    "0 pts \u2014 stays on board", new Color(220,70,70), "Duplicate digits in a row/col stay & block you"},
             };
-
             int sy = 68, rowH = 68, badgeW = 180;
             for (Object[] row : scores) {
                 g.setColor(new Color(16,16,24)); g.fillRoundRect(28, sy, W-56, rowH-6, 8, 8);
@@ -722,17 +888,14 @@ class TutorialDialog extends JDialog {
             }
         }
 
-        // Page 3: Level progression
         void drawPage3(Graphics2D g) {
             int W = getWidth();
             g.setFont(new Font("Arial Black", Font.BOLD, 24));
             drawShadowText(g, "LEVELS & PROGRESSION", W/2, 44, new Color(80,200,80), 2);
             g.setColor(new Color(35, 35, 55)); g.fillRect(50, 54, W - 100, 1);
-
             int lx = 28, ly = 68, lw = W-56, lh = 24;
             g.setFont(new Font("Arial", Font.BOLD, 10)); g.setColor(new Color(100,105,150));
-            g.drawString("SPEED INCREASES EVERY 60 SECONDS — LEVEL 1 TO 10", lx, ly-4);
-
+            g.drawString("SPEED INCREASES EVERY 60 SECONDS \u2014 LEVEL 1 TO 10", lx, ly-4);
             for (int lv = 1; lv <= 10; lv++) {
                 float t = (lv-1)/9f;
                 Color c = new Color(Math.min(255,(int)(t*225+30)),Math.min(255,(int)((1f-t)*200+55)),22);
@@ -743,22 +906,19 @@ class TutorialDialog extends JDialog {
                 FontMetrics fm = g.getFontMetrics();
                 g.drawString(String.valueOf(lv), sx+(segW-fm.stringWidth(String.valueOf(lv)))/2, ly+16);
             }
-
             int tableY = ly + lh + 14;
             g.setColor(new Color(35,35,55)); g.fillRect(lx, tableY, lw, 1); tableY += 6;
-
             String[][] table = {
-                {"Level 1", "700ms/tick", "~1.4 drops/sec", "Easy warm-up"},
-                {"Level 2", "580ms/tick", "~1.7 drops/sec", "Steady pace"},
-                {"Level 3", "460ms/tick", "~2.2 drops/sec", "Think fast"},
-                {"Level 4", "340ms/tick", "~2.9 drops/sec", "Quite quick"},
-                {"Level 5", "260ms/tick", "~3.8 drops/sec", "No hesitation"},
-                {"Level 6", "200ms/tick", "~5 drops/sec",   "Expert zone"},
-                {"Level 7+","≤140ms/tick","7+ drops/sec",   "Survival mode!"},
+                    {"Level 1", "700ms/tick", "~1.4 drops/sec", "Easy warm-up"},
+                    {"Level 2", "580ms/tick", "~1.7 drops/sec", "Steady pace"},
+                    {"Level 3", "460ms/tick", "~2.2 drops/sec", "Think fast"},
+                    {"Level 4", "340ms/tick", "~2.9 drops/sec", "Quite quick"},
+                    {"Level 5", "260ms/tick", "~3.8 drops/sec", "No hesitation"},
+                    {"Level 6", "200ms/tick", "~5 drops/sec",   "Expert zone"},
+                    {"Level 7+","<=140ms/tick","7+ drops/sec",  "Survival mode!"},
             };
             Color[] rowColors = {new Color(0,215,230),new Color(60,200,60),new Color(60,200,60),
                     new Color(220,185,0),new Color(220,185,0),new Color(220,80,30),new Color(220,30,30)};
-
             for (int i = 0; i < table.length; i++) {
                 int ry = tableY + i*28;
                 g.setColor(i%2==0?new Color(14,14,20):new Color(10,10,15));
@@ -773,87 +933,66 @@ class TutorialDialog extends JDialog {
                 g.setFont(new Font("Arial", Font.ITALIC, 11)); g.setColor(new Color(90,95,135));
                 g.drawString(table[i][3], lx+360, ry+17);
             }
-
             int bottomY = tableY + table.length*28 + 10;
             g.setColor(new Color(12,22,12)); g.fillRoundRect(lx, bottomY, lw, 40, 10, 10);
             g.setColor(new Color(40,160,50)); g.setStroke(new BasicStroke(1.5f));
             g.drawRoundRect(lx, bottomY, lw, 40, 10, 10); g.setStroke(new BasicStroke(1f));
             g.setFont(new Font("Arial Black", Font.BOLD, 13)); g.setColor(new Color(80,220,80));
-            String ready = "You're ready! Press  ▶  PLAY NOW!  to start.";
+            String ready = "You're ready! Press  \u25ba  PLAY NOW!  to start.";
             FontMetrics fm2 = g.getFontMetrics();
             g.drawString(ready, lx+(lw-fm2.stringWidth(ready))/2, bottomY+24);
         }
 
-        // Page 4: Power-ups
         void drawPage4(Graphics2D g) {
             int W = getWidth();
             g.setFont(new Font("Arial Black", Font.BOLD, 24));
             drawShadowText(g, "POWER-UPS", W/2, 40, new Color(180, 100, 255), 2);
             g.setColor(new Color(35, 35, 55)); g.fillRect(40, 50, W - 80, 1);
-
             g.setFont(new Font("Arial", Font.ITALIC, 12));
             drawCenteredText(g, "Earn charges by playing well \u2014 activate them with a single key press!", W/2, 68, new Color(130, 100, 200));
-
             Object[][] pups = {
-                // {name, key, accentR,G,B, earnDesc, effectDesc, earnIcon}
-                new Object[]{"Time Freeze", "F", 100, 200, 255,
-                    "Earned every 4 lines cleared  (up to 3 charges)",
-                    "Stops the piece from auto-dropping for 8 seconds. The board gets an icy blue glow and a countdown bar appears at the top. Use it when you need time to plan your next move.",
-                    "\u2744"},
-                new Object[]{"Slow-Mo", "S", 255, 175, 40,
-                    "Earned every 8 pieces locked  (up to 3 charges)",
-                    "Halves the fall speed for 15 seconds. Works at any level \u2014 even level 10 becomes manageable. An amber glow and countdown bar show how long remains.",
-                    "\u25d0"},
-                new Object[]{"Clear Bomb", "B", 220, 80, 200,
-                    "Earned every time you complete a 3\u00d73 box  (up to 3 charges)",
-                    "Instantly clears all filled cells in the bottom 3 rows with a flash and particle burst, then gravity pulls everything down. Perfect for breaking a deadlock when the board is getting full.",
-                    "\u25ce"},
+                    new Object[]{"Time Freeze", "F", 100, 200, 255,
+                            "Earned every 4 lines cleared  (up to 3 charges)",
+                            "Stops the piece from auto-dropping for 8 seconds. The board gets an icy blue glow and a countdown bar appears at the top. Use it when you need time to plan your next move.",
+                            "\u2744"},
+                    new Object[]{"Slow-Mo", "S", 255, 175, 40,
+                            "Earned every 8 pieces locked  (up to 3 charges)",
+                            "Halves the fall speed for 15 seconds. Works at any level \u2014 even level 10 becomes manageable. An amber glow and countdown bar show how long remains.",
+                            "\u25d0"},
+                    new Object[]{"Clear Bomb", "B", 220, 80, 200,
+                            "Earned every time you complete a 3\u00d73 box  (up to 3 charges)",
+                            "Instantly clears all filled cells in the bottom 3 rows with a flash and particle burst, then gravity pulls everything down. Perfect for breaking a deadlock when the board is getting full.",
+                            "\u25ce"},
             };
-
             int sy = 80;
             for (Object[] pu : pups) {
                 String name = (String)pu[0], key = (String)pu[1];
                 int cr=(int)pu[2], cg=(int)pu[3], cb=(int)pu[4];
-                String earnDesc=(String)pu[5], effectDesc=(String)pu[6], icon=(String)pu[7];
+                String earnDesc=(String)pu[5], effectDesc=(String)pu[6];
                 Color accent = new Color(cr,cg,cb);
-
                 int cardH = 118;
-                // Card background
                 g.setColor(new Color(14,14,22)); g.fillRoundRect(24, sy, W-48, cardH, 10, 10);
                 g.setColor(new Color(cr/4+10, cg/4+10, cb/4+10)); g.fillRoundRect(24, sy, W-48, cardH, 10, 10);
                 g.setColor(accent); g.setStroke(new BasicStroke(1.5f));
                 g.drawRoundRect(24, sy, W-48, cardH, 10, 10); g.setStroke(new BasicStroke(1f));
-                // Left accent bar
                 g.setColor(accent); g.fillRoundRect(24, sy, 5, cardH, 4, 4);
-
-                // Custom drawn logo instead of unicode
                 drawPowerUpLogo(g, 36, sy+10, 38, (int)pu[2], (int)pu[3], (int)pu[4], (String)pu[1]);
-
-                // Key badge
                 g.setColor(new Color(20,20,34)); g.fillRoundRect(36, sy+54, 38, 20, 5, 5);
                 g.setColor(accent); g.setStroke(new BasicStroke(1.5f));
                 g.drawRoundRect(36, sy+54, 38, 20, 5, 5); g.setStroke(new BasicStroke(1f));
                 g.setFont(new Font("Courier New", Font.BOLD, 13)); g.setColor(accent);
                 FontMetrics kfm = g.getFontMetrics();
                 g.drawString(key, 36+(38-kfm.stringWidth(key))/2, sy+68);
-
-                // Name
                 g.setFont(new Font("Arial Black", Font.BOLD, 15)); g.setColor(Color.WHITE);
                 g.drawString(name, 84, sy+26);
-
-                // Earn description
                 g.setFont(new Font("Arial", Font.BOLD, 10)); g.setColor(accent);
                 g.drawString(earnDesc, 84, sy+42);
-
-                // Effect description (word-wrapped to fit)
                 g.setFont(new Font("Arial", Font.PLAIN, 11)); g.setColor(new Color(160,162,205));
                 drawWrappedText(g, effectDesc, 84, sy+58, W-48-84-16, 15);
-
                 sy += cardH + 10;
             }
         }
 
-        // Wrap text within maxWidth pixels, drawing lines top-down from (x,y)
         void drawWrappedText(Graphics2D g, String text, int x, int y, int maxWidth, int lineH) {
             FontMetrics fm = g.getFontMetrics();
             String[] words = text.split(" ");
@@ -872,117 +1011,81 @@ class TutorialDialog extends JDialog {
             if (line.length() > 0) g.drawString(line.toString(), x, curY);
         }
 
-        // Draw a custom power-up logo inside a circle of given size at (ox,oy)
         void drawPowerUpLogo(Graphics2D g, int ox, int oy, int size, int cr, int cg, int cb, String key) {
             Color accent = new Color(cr, cg, cb);
             Color dim    = new Color(cr/5+8, cg/5+8, cb/5+8);
-            int cx = ox + size/2, cy = oy + size/2, r = size/2;
-
-            // Circle background
+            int cx2 = ox + size/2, cy2 = oy + size/2, r = size/2;
             g.setColor(dim); g.fillOval(ox, oy, size, size);
             g.setColor(accent); g.setStroke(new BasicStroke(2f));
             g.drawOval(ox, oy, size, size); g.setStroke(new BasicStroke(1f));
-
             Composite old = g.getComposite();
             g.setClip(new java.awt.geom.Ellipse2D.Float(ox+1, oy+1, size-2, size-2));
-
             if (key.equals("F")) {
-                // ── Snowflake (Time Freeze) ───────────────────────
                 g.setColor(accent); g.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                // 6 arms
                 for (int arm = 0; arm < 6; arm++) {
                     double angle = arm * Math.PI / 3;
-                    int ex = cx + (int)(Math.cos(angle) * (r-5));
-                    int ey = cy + (int)(Math.sin(angle) * (r-5));
-                    g.drawLine(cx, cy, ex, ey);
-                    // Two side branches on each arm
+                    int ex = cx2 + (int)(Math.cos(angle) * (r-5));
+                    int ey = cy2 + (int)(Math.sin(angle) * (r-5));
+                    g.drawLine(cx2, cy2, ex, ey);
                     for (int b = 1; b >= -1; b -= 2) {
                         double ba = angle + b * Math.PI / 6;
-                        int mx = cx + (int)(Math.cos(angle) * (r-11));
-                        int my = cy + (int)(Math.sin(angle) * (r-11));
+                        int mx = cx2 + (int)(Math.cos(angle) * (r-11));
+                        int my = cy2 + (int)(Math.sin(angle) * (r-11));
                         int bex = mx + (int)(Math.cos(ba) * 5);
                         int bey = my + (int)(Math.sin(ba) * 5);
                         g.drawLine(mx, my, bex, bey);
                     }
                 }
-                // Centre dot
                 g.setColor(new Color(220, 240, 255));
-                g.fillOval(cx-3, cy-3, 6, 6);
+                g.fillOval(cx2-3, cy2-3, 6, 6);
                 g.setStroke(new BasicStroke(1f));
-
             } else if (key.equals("S")) {
-                // ── Hourglass (Slow-Mo) ──────────────────────────
                 g.setColor(new Color(cr, cg, cb, 90));
-                // Top half fill (sand)
-                int[] topX = {cx-9, cx+9, cx};
-                int[] topY = {cy-11, cy-11, cy};
+                int[] topX = {cx2-9, cx2+9, cx2};
+                int[] topY = {cy2-11, cy2-11, cy2};
                 g.fillPolygon(topX, topY, 3);
-                // Bottom half fill (sand at bottom)
-                int[] botX = {cx-9, cx+9, cx};
-                int[] botY = {cy+11, cy+11, cy};
+                int[] botX = {cx2-9, cx2+9, cx2};
+                int[] botY = {cy2+11, cy2+11, cy2};
                 g.fillPolygon(botX, botY, 3);
-                // Hourglass outline
                 g.setColor(accent); g.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                int[] hgx = {cx-10, cx+10, cx+2, cx+10, cx-10, cx-2, cx-10};
-                int[] hgy = {cy-12, cy-12, cy,   cy+12,  cy+12, cy,   cy-12};
+                int[] hgx = {cx2-10, cx2+10, cx2+2, cx2+10, cx2-10, cx2-2, cx2-10};
+                int[] hgy = {cy2-12, cy2-12, cy2,   cy2+12, cy2+12, cy2,   cy2-12};
                 g.drawPolyline(hgx, hgy, 7);
-                // Top and bottom bars
-                g.drawLine(cx-10, cy-12, cx+10, cy-12);
-                g.drawLine(cx-10, cy+12, cx+10, cy+12);
-                // Tiny falling sand dot
+                g.drawLine(cx2-10, cy2-12, cx2+10, cy2-12);
+                g.drawLine(cx2-10, cy2+12, cx2+10, cy2+12);
                 g.setColor(new Color(255, 220, 100));
-                g.fillOval(cx-2, cy-3, 4, 4);
+                g.fillOval(cx2-2, cy2-3, 4, 4);
                 g.setStroke(new BasicStroke(1f));
-
-                // Speed arrows on side to reinforce "slow"
-                g.setColor(new Color(cr, cg, cb, 130));
-                g.setStroke(new BasicStroke(1.2f));
-                // Left slow-down chevron
-                g.drawLine(cx-16, cy-3, cx-12, cy);
-                g.drawLine(cx-16, cy+3, cx-12, cy);
-                // Right slow-down chevron
-                g.drawLine(cx+12, cy-3, cx+16, cy);
-                g.drawLine(cx+12, cy+3, cx+16, cy);
-                g.setStroke(new BasicStroke(1f));
-
             } else if (key.equals("B")) {
-                // ── Bomb with explosion sparks (Clear Bomb) ───────
-                // Fuse wire
                 g.setColor(new Color(200, 160, 80));
                 g.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                g.drawArc(cx-2, cy-r+2, 10, 10, 0, 200);
-                // Fuse spark
+                g.drawArc(cx2-2, cy2-r+2, 10, 10, 0, 200);
                 g.setColor(new Color(255, 230, 50));
-                g.fillOval(cx+5, cy-r+2, 5, 5);
+                g.fillOval(cx2+5, cy2-r+2, 5, 5);
                 g.setStroke(new BasicStroke(1f));
-                // Bomb body
                 int br = r - 10;
-                g.setColor(new Color(30, 25, 35)); g.fillOval(cx-br, cy-br+3, br*2, br*2);
-                g.setColor(new Color(cr, cg, cb, 80)); g.fillOval(cx-br+1, cy-br+4, br*2-2, br*2-2);
+                g.setColor(new Color(30, 25, 35)); g.fillOval(cx2-br, cy2-br+3, br*2, br*2);
+                g.setColor(new Color(cr, cg, cb, 80)); g.fillOval(cx2-br+1, cy2-br+4, br*2-2, br*2-2);
                 g.setColor(accent); g.setStroke(new BasicStroke(2f));
-                g.drawOval(cx-br, cy-br+3, br*2, br*2); g.setStroke(new BasicStroke(1f));
-                // Shine highlight
+                g.drawOval(cx2-br, cy2-br+3, br*2, br*2); g.setStroke(new BasicStroke(1f));
                 g.setColor(new Color(255,255,255,60));
-                g.fillOval(cx-br+3, cy-br+5, br/2, br/3);
-                // 6 explosion sparks radiating outward
+                g.fillOval(cx2-br+3, cy2-br+5, br/2, br/3);
                 g.setColor(new Color(255, 200, 60));
                 g.setStroke(new BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
                 for (int sp = 0; sp < 6; sp++) {
                     double sa = sp * Math.PI / 3 + Math.PI/6;
-                    int sx2 = cx + (int)(Math.cos(sa) * (br+2));
-                    int sy2 = cy + 3 + (int)(Math.sin(sa) * (br+2));
-                    int ex2 = cx + (int)(Math.cos(sa) * (r-2));
-                    int ey2 = cy + 3 + (int)(Math.sin(sa) * (r-2));
+                    int sx2 = cx2 + (int)(Math.cos(sa) * (br+2));
+                    int sy2 = cy2 + 3 + (int)(Math.sin(sa) * (br+2));
+                    int ex2 = cx2 + (int)(Math.cos(sa) * (r-2));
+                    int ey2 = cy2 + 3 + (int)(Math.sin(sa) * (r-2));
                     g.drawLine(sx2, sy2, ex2, ey2);
                 }
                 g.setStroke(new BasicStroke(1f));
             }
-
             g.setClip(null);
             g.setComposite(old);
         }
 
-        // ── Helpers ──────────────────────────────────────────────
         void drawBox(Graphics2D g, int x, int y, int w, int h, Color accent, String title) {
             g.setColor(new Color(16,16,24)); g.fillRoundRect(x,y,w,h,10,10);
             g.setColor(accent); g.setStroke(new BasicStroke(1.5f)); g.drawRoundRect(x,y,w,h,10,10);
@@ -1042,26 +1145,25 @@ class GamePanel extends JPanel implements ActionListener {
     }
 
     static final Color[] PIECE_CLR = {
-        new Color(  0,215,230), // I cyan
-        new Color(240,200,  0), // O yellow
-        new Color(160,  0,220), // T purple
-        new Color( 20,200, 55), // S green
-        new Color(220, 30, 30), // Z red
-        new Color( 20, 80,220), // J blue
-        new Color(220,115,  0), // L orange
+            new Color(  0,215,230),
+            new Color(240,200,  0),
+            new Color(160,  0,220),
+            new Color( 20,200, 55),
+            new Color(220, 30, 30),
+            new Color( 20, 80,220),
+            new Color(220,115,  0),
     };
 
     static final int[][][][] SHAPES = {
-        {{{0,0},{0,1},{0,2},{0,3}},{{0,0},{1,0},{2,0},{3,0}},{{0,0},{0,1},{0,2},{0,3}},{{0,0},{1,0},{2,0},{3,0}}},
-        {{{0,0},{0,1},{1,0},{1,1}},{{0,0},{0,1},{1,0},{1,1}},{{0,0},{0,1},{1,0},{1,1}},{{0,0},{0,1},{1,0},{1,1}}},
-        {{{0,1},{1,0},{1,1},{1,2}},{{0,0},{1,0},{1,1},{2,0}},{{0,0},{0,1},{0,2},{1,1}},{{0,1},{1,0},{1,1},{2,1}}},
-        {{{0,1},{0,2},{1,0},{1,1}},{{0,0},{1,0},{1,1},{2,1}},{{0,1},{0,2},{1,0},{1,1}},{{0,0},{1,0},{1,1},{2,1}}},
-        {{{0,0},{0,1},{1,1},{1,2}},{{0,1},{1,0},{1,1},{2,0}},{{0,0},{0,1},{1,1},{1,2}},{{0,1},{1,0},{1,1},{2,0}}},
-        {{{0,0},{1,0},{1,1},{1,2}},{{0,0},{0,1},{1,0},{2,0}},{{0,0},{0,1},{0,2},{1,2}},{{0,1},{1,1},{2,0},{2,1}}},
-        {{{0,2},{1,0},{1,1},{1,2}},{{0,0},{1,0},{2,0},{2,1}},{{0,0},{0,1},{0,2},{1,0}},{{0,0},{0,1},{1,1},{2,1}}},
+            {{{0,0},{0,1},{0,2},{0,3}},{{0,0},{1,0},{2,0},{3,0}},{{0,0},{0,1},{0,2},{0,3}},{{0,0},{1,0},{2,0},{3,0}}},
+            {{{0,0},{0,1},{1,0},{1,1}},{{0,0},{0,1},{1,0},{1,1}},{{0,0},{0,1},{1,0},{1,1}},{{0,0},{0,1},{1,0},{1,1}}},
+            {{{0,1},{1,0},{1,1},{1,2}},{{0,0},{1,0},{1,1},{2,0}},{{0,0},{0,1},{0,2},{1,1}},{{0,1},{1,0},{1,1},{2,1}}},
+            {{{0,1},{0,2},{1,0},{1,1}},{{0,0},{1,0},{1,1},{2,1}},{{0,1},{0,2},{1,0},{1,1}},{{0,0},{1,0},{1,1},{2,1}}},
+            {{{0,0},{0,1},{1,1},{1,2}},{{0,1},{1,0},{1,1},{2,0}},{{0,0},{0,1},{1,1},{1,2}},{{0,1},{1,0},{1,1},{2,0}}},
+            {{{0,0},{1,0},{1,1},{1,2}},{{0,0},{0,1},{1,0},{2,0}},{{0,0},{0,1},{0,2},{1,2}},{{0,1},{1,1},{2,0},{2,1}}},
+            {{{0,2},{1,0},{1,1},{1,2}},{{0,0},{1,0},{2,0},{2,1}},{{0,0},{0,1},{0,2},{1,0}},{{0,0},{0,1},{1,1},{2,1}}},
     };
 
-    // Board
     int[][] board = new int[ROWS][COLS];
     int[][] boardColor = new int[ROWS][COLS];
     boolean[][] conflict = new boolean[ROWS][COLS];
@@ -1069,50 +1171,40 @@ class GamePanel extends JPanel implements ActionListener {
     Piece cur, nxt;
     int score = 0, level = 1, lines = 0;
     boolean gameOver = false, paused = false, muted = false;
-    boolean showGhost = true;  // settings: ghost piece on/off
+    boolean showGhost = true;
 
-    // ── Pause menu state ─────────────────────────────────────────
     static final int PAUSE_RESUME = 0, PAUSE_RESTART = 1, PAUSE_SETTINGS = 2, PAUSE_MAINMENU = 3;
-    int pauseSel = 0;          // currently highlighted menu item
-    boolean inSettings = false; // true = showing settings sub-panel
-    int settingsSel = 0;        // highlighted setting row (0=mute,1=ghost,2=speed)
+    int pauseSel = 0;
+    boolean inSettings = false;
+    int settingsSel = 0;
 
-    // ── Power-up state ───────────────────────────────────────────
-    // Time Freeze  (key: F) — stops auto-drop timer for 8 seconds
     boolean freezeActive = false;
     long freezeEndMs = 0;
     int freezeCharges = 0;
     static final long FREEZE_DURATION_MS = 8_000L;
 
-    // Slow-Mo  (key: S) — halves fall speed for 15 seconds
     boolean slowMoActive = false;
     long slowMoEndMs = 0;
     int slowMoCharges = 0;
     static final long SLOWMO_DURATION_MS = 15_000L;
 
-    // Clear Bomb  (key: B) — clears all cells in the bottom 3 rows
     int bombCharges = 0;
 
-    // Charges earned counters
-    int linesForFreeze = 0;   // every 4 lines cleared → +1 freeze
-    int piecesForSlowMo = 0;  // every 8 pieces locked → +1 slow-mo
-    int boxesForBomb = 0;     // every 3×3 box cleared → +1 bomb
+    int linesForFreeze = 0;
+    int piecesForSlowMo = 0;
+    int boxesForBomb = 0;
 
-    // Power-up announce banner
     String puAnnounce = "";
     long puAnnounceMs = 0;
     static final long PU_ANNOUNCE_DUR = 2000L;
 
-    // Level progression: time-based (60 seconds per level)
     long levelStartMs = 0;
     static final long LEVEL_DURATION_MS = 60_000L;
 
-    // Level-up flash
     boolean levelUpFlash = false;
     int levelUpTick = 0;
     static final int LEVELUP_DUR = 50;
 
-    // Flash / clear
     List<int[]> flashCells = new ArrayList<>(), pendingClear = new ArrayList<>();
     static final int FLASH_DUR = 12;
     int flashTick = 0;
@@ -1159,7 +1251,6 @@ class GamePanel extends JPanel implements ActionListener {
         lockCells.clear(); lockTick = 0;
         shineItems.clear(); boxClears.clear(); particles.clear(); popups.clear();
         levelUpFlash = false; levelUpTick = 0;
-        // Reset power-ups
         freezeActive = false; freezeCharges = 0; linesForFreeze = 0;
         slowMoActive = false; slowMoCharges = 0; piecesForSlowMo = 0;
         bombCharges = 0; boxesForBomb = 0;
@@ -1206,14 +1297,11 @@ class GamePanel extends JPanel implements ActionListener {
     }
 
     void onKey(int k) {
-        // ── Game over screen ──────────────────────────────────────
         if (gameOver) {
             if (k == KeyEvent.VK_R) newGame();
             if (k == KeyEvent.VK_ESCAPE) goToMainMenu();
             return;
         }
-
-        // ── Pause key — toggle pause ──────────────────────────────
         if (k == KeyEvent.VK_P || (paused && !inSettings && k == KeyEvent.VK_ESCAPE)) {
             if (!paused) {
                 paused = true; pauseSel = 0; inSettings = false;
@@ -1223,8 +1311,6 @@ class GamePanel extends JPanel implements ActionListener {
             }
             repaint(); return;
         }
-
-        // ── Settings sub-panel navigation ─────────────────────────
         if (paused && inSettings) {
             if (k == KeyEvent.VK_ESCAPE || k == KeyEvent.VK_BACK_SPACE) {
                 inSettings = false; repaint(); return;
@@ -1242,8 +1328,6 @@ class GamePanel extends JPanel implements ActionListener {
             }
             return;
         }
-
-        // ── Pause menu navigation ─────────────────────────────────
         if (paused) {
             if (k == KeyEvent.VK_UP)   { pauseSel = (pauseSel + 3) % 4; repaint(); return; }
             if (k == KeyEvent.VK_DOWN) { pauseSel = (pauseSel + 1) % 4; repaint(); return; }
@@ -1252,8 +1336,6 @@ class GamePanel extends JPanel implements ActionListener {
             }
             return;
         }
-
-        // ── Active gameplay ───────────────────────────────────────
         if (k == KeyEvent.VK_M) {
             muted = !muted;
             if (muted) SoundEngine.stopBGM(); else SoundEngine.startBGM();
@@ -1296,21 +1378,14 @@ class GamePanel extends JPanel implements ActionListener {
 
     void applySettingAction() {
         switch (settingsSel) {
-            case 0: // Mute
-                muted = !muted;
-                if (muted) SoundEngine.stopBGM(); else SoundEngine.startBGM();
-                break;
-            case 1: // Ghost piece
-                showGhost = !showGhost;
-                break;
-            case 2: // Speed — handled by left/right, enter does nothing extra
-                break;
+            case 0: muted = !muted; if (muted) SoundEngine.stopBGM(); else SoundEngine.startBGM(); break;
+            case 1: showGhost = !showGhost; break;
+            case 2: break;
         }
     }
 
     void goToMainMenu() {
         gameTmr.stop(); levelTmr.stop(); SoundEngine.stopBGM();
-        // Replace the game window with the main menu
         JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
         if (frame != null) frame.dispose();
         SwingUtilities.invokeLater(() -> {
@@ -1325,13 +1400,12 @@ class GamePanel extends JPanel implements ActionListener {
         levelStartMs = System.currentTimeMillis() - (level-1)*LEVEL_DURATION_MS;
     }
 
-    // ── Power-up activations ─────────────────────────────────────
     void activateFreeze() {
         if (freezeCharges <= 0) return;
         freezeCharges--;
         freezeActive = true;
         freezeEndMs = System.currentTimeMillis() + FREEZE_DURATION_MS;
-        gameTmr.stop();  // stop the auto-drop
+        gameTmr.stop();
         showPuAnnounce("TIME FREEZE! +" + FREEZE_DURATION_MS/1000 + "s");
         SoundEngine.play("powerup_freeze");
     }
@@ -1349,15 +1423,9 @@ class GamePanel extends JPanel implements ActionListener {
     void activateBomb() {
         if (bombCharges <= 0) return;
         bombCharges--;
-        // Collect all filled cells in the bottom 3 rows for a flash-then-clear
-        for (int r = ROWS-3; r < ROWS; r++) {
-            for (int c = 0; c < COLS; c++) {
-                if (board[r][c] != 0) {
-                    flashCells.add(new int[]{r,c});
-                    pendingClear.add(new int[]{r,c});
-                }
-            }
-        }
+        for (int r = ROWS-3; r < ROWS; r++)
+            for (int c = 0; c < COLS; c++)
+                if (board[r][c] != 0) { flashCells.add(new int[]{r,c}); pendingClear.add(new int[]{r,c}); }
         if (!flashCells.isEmpty()) flashTick = FLASH_DUR;
         showPuAnnounce("CLEAR BOMB! Bottom 3 rows blasted!");
         SoundEngine.play("powerup_bomb");
@@ -1365,17 +1433,10 @@ class GamePanel extends JPanel implements ActionListener {
 
     void showPuAnnounce(String msg) { puAnnounce = msg; puAnnounceMs = System.currentTimeMillis(); }
 
-    // Called each second by levelTmr to also tick power-up timers
     void tickPowerUps() {
         long now = System.currentTimeMillis();
-        if (freezeActive && now >= freezeEndMs) {
-            freezeActive = false;
-            if (!gameOver && !paused) gameTmr.start(); // resume drops
-        }
-        if (slowMoActive && now >= slowMoEndMs) {
-            slowMoActive = false;
-            gameTmr.setDelay(tickMs()); // restore normal speed
-        }
+        if (freezeActive && now >= freezeEndMs) { freezeActive = false; if (!gameOver && !paused) gameTmr.start(); }
+        if (slowMoActive && now >= slowMoEndMs) { slowMoActive = false; gameTmr.setDelay(tickMs()); }
     }
 
     void shiftPiece(int dr,int dc) {
@@ -1441,7 +1502,6 @@ class GamePanel extends JPanel implements ActionListener {
         lockTick=LOCK_DUR;
         for(int[]lc:lockCells) spawnParticles(lc[0],lc[1],cur.type,4,2.4f);
         SoundEngine.play("lock");
-        // Slow-mo: every 8 pieces locked
         piecesForSlowMo++;
         if (piecesForSlowMo >= 8) { piecesForSlowMo = 0; slowMoCharges = Math.min(3, slowMoCharges+1); showPuAnnounce("SLOW-MO ready!  Press S"); }
         markConflicts(); checkRows(); checkBoxes();
@@ -1473,7 +1533,6 @@ class GamePanel extends JPanel implements ActionListener {
                 if(freq[board[r][c]]==1){flashCells.add(new int[]{r,c});pendingClear.add(new int[]{r,c});cleared++;}
             }
             score+=cleared*40*level; lines++;
-            // Freeze: every 4 lines cleared
             linesForFreeze++;
             if (linesForFreeze >= 4) { linesForFreeze = 0; freezeCharges = Math.min(3, freezeCharges+1); showPuAnnounce("TIME FREEZE ready!  Press F"); }
         }
@@ -1511,7 +1570,6 @@ class GamePanel extends JPanel implements ActionListener {
             }
             if(ok&&nums.size()==9){
                 score+=1000*level; boxClears.add(new long[]{r0,c0,System.currentTimeMillis()});
-                // Bomb: every box completed
                 boxesForBomb++;
                 if (boxesForBomb >= 1) { boxesForBomb = 0; bombCharges = Math.min(3, bombCharges+1); showPuAnnounce("CLEAR BOMB ready!  Press B"); }
                 for(int dr=0;dr<3;dr++) for(int dc=0;dc<3;dc++){
@@ -1546,10 +1604,10 @@ class GamePanel extends JPanel implements ActionListener {
 
     void spawnParticles(int r,int c,int type,int count,float speed){
         Color base=(type>=0&&type<PIECE_CLR.length)?PIECE_CLR[type]:Color.WHITE;
-        int px=bx(c)+CELL/2,py=by(r)+CELL/2;
+        int px2=bx(c)+CELL/2,py2=by(r)+CELL/2;
         for(int i=0;i<count;i++){
             double ang=rng.nextDouble()*Math.PI*2; float spd=speed*(0.5f+rng.nextFloat());
-            particles.add(new float[]{px,py,(float)(Math.cos(ang)*spd),(float)(Math.sin(ang)*spd-0.5f),
+            particles.add(new float[]{px2,py2,(float)(Math.cos(ang)*spd),(float)(Math.sin(ang)*spd-0.5f),
                     16+rng.nextInt(12),base.getRed(),base.getGreen(),base.getBlue()});
         }
     }
@@ -1557,9 +1615,6 @@ class GamePanel extends JPanel implements ActionListener {
     int bx(int c){return PAD+c*CELL;} int by(int r){return PAD+r*CELL;}
     boolean isFlashing(int r,int c){for(int[]fc:flashCells)if(fc[0]==r&&fc[1]==c)return true;return false;}
 
-    // ════════════════════════════════════════════════════════════
-    //  P A I N T
-    // ════════════════════════════════════════════════════════════
     @Override protected void paintComponent(Graphics g){
         super.paintComponent(g);
         Graphics2D g2=(Graphics2D)g;
@@ -1668,9 +1723,9 @@ class GamePanel extends JPanel implements ActionListener {
             int x=(int)sh[0],y=(int)sh[1];
             g.setClip(x+1,y+1,CELL-2,CELL-2);
             g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,alpha)); g.setColor(Color.WHITE);
-            int bandCX=x+(int)((progress*1.7f-0.2f)*CELL); int bw=Math.max(8,CELL/5);
+            int bandCX=x+(int)((progress*1.7f-0.2f)*CELL); int bw2=Math.max(8,CELL/5);
             g.translate(bandCX,y+CELL/2); g.rotate(-Math.PI/4.0);
-            g.fillRect(-bw/2,-CELL*2,bw,CELL*5);
+            g.fillRect(-bw2/2,-CELL*2,bw2,CELL*5);
             g.rotate(Math.PI/4.0); g.translate(-bandCX,-(y+CELL/2)); g.setClip(oldClip);
         }
         g.setComposite(oldComp); g.setClip(oldClip);
@@ -1691,12 +1746,12 @@ class GamePanel extends JPanel implements ActionListener {
         long now=System.currentTimeMillis();
         for(long[]bc:boxClears){
             float alpha=Math.max(0f,1f-(now-bc[2])/800f);
-            int x=bx((int)bc[1]),y=by((int)bc[0]),bw=3*CELL,bh=3*CELL;
+            int x=bx((int)bc[1]),y=by((int)bc[0]),bw2=3*CELL,bh=3*CELL;
             Composite old=g.getComposite();
             g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,alpha*0.26f));
-            g.setColor(new Color(255,210,50)); g.fillRect(x+1,y+1,bw-2,bh-2); g.setComposite(old);
+            g.setColor(new Color(255,210,50)); g.fillRect(x+1,y+1,bw2-2,bh-2); g.setComposite(old);
             g.setColor(new Color(255,215,50,(int)(alpha*255))); g.setStroke(new BasicStroke(2.5f));
-            g.drawRect(x+1,y+1,bw-2,bh-2); g.setStroke(new BasicStroke(1f));
+            g.drawRect(x+1,y+1,bw2-2,bh-2); g.setStroke(new BasicStroke(1f));
         }
     }
 
@@ -1714,42 +1769,39 @@ class GamePanel extends JPanel implements ActionListener {
             if(p[4]<0){
                 int lv=(int)(-p[4]); String s="LEVEL "+lv+"!";
                 g.setFont(new Font("Arial Black",Font.BOLD,26)); FontMetrics fm=g.getFontMetrics();
-                int tx=(int)p[0]-fm.stringWidth(s)/2;
-                g.setColor(new Color(0,0,0,alpha/2)); g.drawString(s,tx+2,(int)p[1]+2);
-                g.setColor(new Color(255,220,0,alpha)); g.drawString(s,tx,(int)p[1]);
+                int tx2=(int)p[0]-fm.stringWidth(s)/2;
+                g.setColor(new Color(0,0,0,alpha/2)); g.drawString(s,tx2+2,(int)p[1]+2);
+                g.setColor(new Color(255,220,0,alpha)); g.drawString(s,tx2,(int)p[1]);
             } else {
                 String s="+"+(int)p[4]; g.setFont(new Font("Arial",Font.BOLD,20));
-                FontMetrics fm=g.getFontMetrics(); int tx=(int)p[0]-fm.stringWidth(s)/2;
-                g.setColor(new Color(0,0,0,alpha/2)); g.drawString(s,tx+1,(int)p[1]+1);
-                g.setColor(new Color(255,225,45,alpha)); g.drawString(s,tx,(int)p[1]);
+                FontMetrics fm=g.getFontMetrics(); int tx2=(int)p[0]-fm.stringWidth(s)/2;
+                g.setColor(new Color(0,0,0,alpha/2)); g.drawString(s,tx2+1,(int)p[1]+1);
+                g.setColor(new Color(255,225,45,alpha)); g.drawString(s,tx2,(int)p[1]);
             }
         }
     }
 
     void drawLevelUpOverlay(Graphics2D g){
-        float t=(float)levelUpTick/LEVELUP_DUR;
-        float a=Math.min(1f,t<0.35f?t/0.35f:t)*0.20f;
+        float t2=(float)levelUpTick/LEVELUP_DUR;
+        float a=Math.min(1f,t2<0.35f?t2/0.35f:t2)*0.20f;
         Composite old=g.getComposite();
         g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,a));
         g.setColor(Color.getHSBColor(((tick*6)%360)/360f,0.8f,1f));
         g.fillRect(PAD,PAD,BOARD_W,BOARD_H); g.setComposite(old);
-        int cx=PAD+BOARD_W/2,cy=PAD+BOARD_H/2,bw=BOARD_W-40,bh=52;
-        g.setColor(new Color(5,5,18,230)); g.fillRoundRect(cx-bw/2,cy-bh/2,bw,bh,12,12);
+        int cx2=PAD+BOARD_W/2,cy2=PAD+BOARD_H/2,bw2=BOARD_W-40,bh=52;
+        g.setColor(new Color(5,5,18,230)); g.fillRoundRect(cx2-bw2/2,cy2-bh/2,bw2,bh,12,12);
         float pulse=(float)(Math.sin(tick*0.3)*0.3+0.7);
         g.setColor(new Color(255,(int)(195*pulse),0,(int)(220*pulse)));
-        g.setStroke(new BasicStroke(2.5f)); g.drawRoundRect(cx-bw/2,cy-bh/2,bw,bh,12,12); g.setStroke(new BasicStroke(1f));
-        String msg="LEVEL  "+level+"  —  SPEED UP!";
+        g.setStroke(new BasicStroke(2.5f)); g.drawRoundRect(cx2-bw2/2,cy2-bh/2,bw2,bh,12,12); g.setStroke(new BasicStroke(1f));
+        String msg="LEVEL  "+level+"  \u2014  SPEED UP!";
         g.setFont(new Font("Arial Black",Font.BOLD,20)); FontMetrics fm=g.getFontMetrics();
         g.setColor(Color.getHSBColor(((tick*6)%360)/360f,0.9f,1f));
-        g.drawString(msg,cx-fm.stringWidth(msg)/2,cy+fm.getAscent()/2-4);
+        g.drawString(msg,cx2-fm.stringWidth(msg)/2,cy2+fm.getAscent()/2-4);
     }
 
-    // ── Power-up visual overlays ─────────────────────────────────
     void drawPowerUpOverlays(Graphics2D g) {
         long now = System.currentTimeMillis();
         Composite old = g.getComposite();
-
-        // ── Freeze: icy blue tint + edge frost ──
         if (freezeActive) {
             long remaining = freezeEndMs - now;
             float pulse = (float)(Math.sin(tick * 0.12) * 0.06 + 0.10);
@@ -1757,19 +1809,14 @@ class GamePanel extends JPanel implements ActionListener {
             g.setColor(new Color(80, 180, 255));
             g.fillRect(PAD, PAD, BOARD_W, BOARD_H);
             g.setComposite(old);
-            // Border glow
-            float glow = (float)(Math.sin(tick * 0.18) * 0.4 + 0.6);
-            g.setColor(new Color(120, 210, 255, (int)(glow * 200)));
+            float glow2 = (float)(Math.sin(tick * 0.18) * 0.4 + 0.6);
+            g.setColor(new Color(120, 210, 255, (int)(glow2 * 200)));
             g.setStroke(new BasicStroke(3.5f));
             g.drawRect(PAD, PAD, BOARD_W, BOARD_H);
             g.setStroke(new BasicStroke(1f));
-            // Timer bar at top of board
             float frac = (float) remaining / FREEZE_DURATION_MS;
-            g.setColor(new Color(20, 20, 40));
-            g.fillRect(PAD, PAD, BOARD_W, 5);
-            g.setColor(new Color(100, 200, 255));
-            g.fillRect(PAD, PAD, (int)(frac * BOARD_W), 5);
-            // Label
+            g.setColor(new Color(20, 20, 40)); g.fillRect(PAD, PAD, BOARD_W, 5);
+            g.setColor(new Color(100, 200, 255)); g.fillRect(PAD, PAD, (int)(frac * BOARD_W), 5);
             g.setFont(new Font("Arial Black", Font.BOLD, 11));
             String ftxt = "FREEZE  " + (remaining/1000+1) + "s";
             FontMetrics fm = g.getFontMetrics();
@@ -1778,8 +1825,6 @@ class GamePanel extends JPanel implements ActionListener {
             g.setColor(new Color(140, 220, 255));
             g.drawString(ftxt, PAD + BOARD_W/2 - fm.stringWidth(ftxt)/2, PAD + 18);
         }
-
-        // ── Slow-Mo: warm amber ripple tint ──
         if (slowMoActive) {
             long remaining = slowMoEndMs - now;
             float pulse = (float)(Math.sin(tick * 0.09) * 0.04 + 0.07);
@@ -1787,19 +1832,14 @@ class GamePanel extends JPanel implements ActionListener {
             g.setColor(new Color(255, 160, 30));
             g.fillRect(PAD, PAD, BOARD_W, BOARD_H);
             g.setComposite(old);
-            // Border
-            float glow = (float)(Math.sin(tick * 0.14) * 0.3 + 0.7);
-            g.setColor(new Color(255, 180, 50, (int)(glow * 180)));
+            float glow2 = (float)(Math.sin(tick * 0.14) * 0.3 + 0.7);
+            g.setColor(new Color(255, 180, 50, (int)(glow2 * 180)));
             g.setStroke(new BasicStroke(3f));
             g.drawRect(PAD, PAD, BOARD_W, BOARD_H);
             g.setStroke(new BasicStroke(1f));
-            // Timer bar at top
             float frac = (float) remaining / SLOWMO_DURATION_MS;
-            g.setColor(new Color(30, 20, 10));
-            g.fillRect(PAD, PAD, BOARD_W, 5);
-            g.setColor(new Color(255, 170, 40));
-            g.fillRect(PAD, PAD, (int)(frac * BOARD_W), 5);
-            // Label
+            g.setColor(new Color(30, 20, 10)); g.fillRect(PAD, PAD, BOARD_W, 5);
+            g.setColor(new Color(255, 170, 40)); g.fillRect(PAD, PAD, (int)(frac * BOARD_W), 5);
             g.setFont(new Font("Arial Black", Font.BOLD, 11));
             String stxt = "SLOW-MO  " + (remaining/1000+1) + "s";
             FontMetrics fm = g.getFontMetrics();
@@ -1808,27 +1848,25 @@ class GamePanel extends JPanel implements ActionListener {
             g.setColor(new Color(255, 200, 80));
             g.drawString(stxt, PAD + BOARD_W/2 - fm.stringWidth(stxt)/2, PAD + 18);
         }
-
-        // ── Power-up announce banner ──
         if (!puAnnounce.isEmpty()) {
             long age = now - puAnnounceMs;
             if (age < PU_ANNOUNCE_DUR) {
                 float fade = age < 300 ? age / 300f : 1f - (float)(age - 300) / (PU_ANNOUNCE_DUR - 300);
                 int alpha = (int)(fade * 240);
-                int bw = BOARD_W - 40, bh = 36;
-                int bx2 = PAD + BOARD_W/2 - bw/2, by2 = PAD + BOARD_H - 60;
+                int bw2 = BOARD_W - 40, bh = 36;
+                int bx2 = PAD + BOARD_W/2 - bw2/2, by2 = PAD + BOARD_H - 60;
                 g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, fade * 0.88f));
                 g.setColor(new Color(8, 8, 20));
-                g.fillRoundRect(bx2, by2, bw, bh, 10, 10);
+                g.fillRoundRect(bx2, by2, bw2, bh, 10, 10);
                 g.setComposite(old);
                 g.setColor(new Color(100, 220, 100, alpha));
                 g.setStroke(new BasicStroke(1.8f));
-                g.drawRoundRect(bx2, by2, bw, bh, 10, 10);
+                g.drawRoundRect(bx2, by2, bw2, bh, 10, 10);
                 g.setStroke(new BasicStroke(1f));
                 g.setFont(new Font("Arial Black", Font.BOLD, 12));
                 FontMetrics fm = g.getFontMetrics();
                 g.setColor(new Color(130, 255, 130, alpha));
-                g.drawString(puAnnounce, bx2 + (bw - fm.stringWidth(puAnnounce))/2, by2 + 23);
+                g.drawString(puAnnounce, bx2 + (bw2 - fm.stringWidth(puAnnounce))/2, by2 + 23);
             } else {
                 puAnnounce = "";
             }
@@ -1836,53 +1874,40 @@ class GamePanel extends JPanel implements ActionListener {
         g.setComposite(old);
     }
 
-    // ── Sidebar ──────────────────────────────────────────────────
     void drawSidebar(Graphics2D g){
-        int sx=PAD+BOARD_W+PAD, cw=SIDE_W-16, cx=sx+8;
+        int sx=PAD+BOARD_W+PAD, cw=SIDE_W-16, cx2=sx+8;
         g.setColor(new Color(10,10,14)); g.fillRect(sx,0,W-sx,H);
         g.setColor(new Color(36,36,52)); g.fillRect(sx,0,2,H);
-
         int y=10;
-
-        // ── Title card ──
         drawCard(g,sx+4,y,cw,48);
         g.setFont(new Font("Arial Black",Font.BOLD,18)); g.setColor(new Color(200,210,255));
-        FontMetrics fm=g.getFontMetrics();
-        String title="TetriDoku";
-        g.drawString(title, cx, y+22);
+        g.drawString("TetriDoku", cx2, y+22);
         g.setFont(new Font("Arial",Font.PLAIN,9)); g.setColor(new Color(55,55,90));
-        g.drawString("Tetris  \u00d7  Sudoku", cx, y+38);
-        // Mute icon aligned to right of card
-        String muteIcon = muted ? "🔇" : "🔊";
+        g.drawString("Tetris  \u00d7  Sudoku", cx2, y+38);
+        String muteIcon = muted ? "\uD83D\uDD07" : "\uD83D\uDD0A";
         g.setFont(new Font("Arial",Font.PLAIN,14));
         g.setColor(muted ? new Color(100,40,40) : new Color(60,110,60));
         g.drawString(muteIcon, sx+cw-14, y+22);
         y += 56;
-
-        // ── Stats card ──
         drawCard(g,sx+4,y,cw,102);
-        y=drawStat(g,cx,y+4,"SCORE",score,new Color(255,210,55));
-        y=drawStat(g,cx,y,"LEVEL",level,speedColor(level));
-        y=drawStat(g,cx,y,"LINES",lines,new Color(160,175,220));
+        y=drawStat(g,cx2,y+4,"SCORE",score,new Color(255,210,55));
+        y=drawStat(g,cx2,y,"LEVEL",level,speedColor(level));
+        y=drawStat(g,cx2,y,"LINES",lines,new Color(160,175,220));
         y+=8;
-
-        // ── High Score ──
         if (TetriDoku.highScore > 0) {
             drawCard(g,sx+4,y,cw,24);
             g.setFont(new Font("Arial",Font.BOLD,9)); g.setColor(new Color(180,150,30));
-            g.drawString("BEST", cx, y+10);
+            g.drawString("BEST", cx2, y+10);
             g.setFont(new Font("Arial Black",Font.BOLD,9)); g.setColor(new Color(255,210,50));
-            g.drawString(String.valueOf(TetriDoku.highScore), cx+32, y+10);
+            g.drawString(String.valueOf(TetriDoku.highScore), cx2+32, y+10);
             y+=30;
         }
-
-        // ── Level progress bar ──
         drawCard(g,sx+4,y,cw,50);
         g.setFont(new Font("Arial",Font.BOLD,9)); g.setColor(new Color(85,90,140));
         int secs = level < 10 ? secondsToNextLevel() : 0;
         String nextLvLabel = level < 10 ? "NEXT LEVEL  " + secs + "s" : "MAX LEVEL!";
-        g.drawString(nextLvLabel, cx, y+12);
-        int barW=cw-16, barH=9, barX=cx, barY=y+18;
+        g.drawString(nextLvLabel, cx2, y+12);
+        int barW=cw-16, barH=9, barX=cx2, barY=y+18;
         g.setColor(new Color(20,20,30)); g.fillRoundRect(barX,barY,barW,barH,4,4);
         if(level<10){
             int fw=(int)(levelProgress()*barW);
@@ -1893,87 +1918,66 @@ class GamePanel extends JPanel implements ActionListener {
         g.setColor(new Color(38,38,58)); g.setStroke(new BasicStroke(1f));
         g.drawRoundRect(barX,barY,barW,barH,4,4);
         y+=56;
-
-        // ── Speed bar ──
         drawCard(g,sx+4,y,cw,60);
         g.setFont(new Font("Arial",Font.BOLD,9)); g.setColor(new Color(85,90,140));
-        g.drawString("GAME SPEED", cx, y+12);
-        int segTot=10, segH=10, segW=(cw-16)/segTot;
+        g.drawString("GAME SPEED", cx2, y+12);
+        int segTot=10, segH=10, segW2=(cw-16)/segTot;
         int segY=y+18;
         for(int i=1;i<=segTot;i++){
             g.setColor(i<=level?speedColor(i):new Color(22,22,32));
-            g.fillRect(cx+(i-1)*(segW+2),segY,segW,segH);
-            if(i<=level){g.setColor(new Color(255,255,255,45));g.fillRect(cx+(i-1)*(segW+2)+1,segY+1,segW-2,3);}
+            g.fillRect(cx2+(i-1)*(segW2+2),segY,segW2,segH);
+            if(i<=level){g.setColor(new Color(255,255,255,45));g.fillRect(cx2+(i-1)*(segW2+2)+1,segY+1,segW2-2,3);}
         }
-        // Level number and speed hints
         g.setFont(new Font("Arial Black",Font.BOLD,20)); g.setColor(speedColor(level));
-        g.drawString(String.valueOf(level), cx, segY+segH+18);
+        g.drawString(String.valueOf(level), cx2, segY+segH+18);
         g.setFont(new Font("Arial",Font.PLAIN,8)); g.setColor(new Color(65,70,115));
-        g.drawString("[\u2013] Slower", cx+26, segY+segH+8);
-        g.drawString("[=] Faster",  cx+26, segY+segH+18);
+        g.drawString("[\u2013] Slower", cx2+26, segY+segH+8);
+        g.drawString("[=] Faster",  cx2+26, segY+segH+18);
         y+=66;
-
-        // ── Next piece ──
         drawCard(g,sx+4,y,cw,72);
         g.setFont(new Font("Arial",Font.BOLD,9)); g.setColor(new Color(85,90,140));
-        g.drawString("NEXT PIECE", cx, y+12);
-        if(nxt!=null) drawMini(g,nxt,cx,y+14);
+        g.drawString("NEXT PIECE", cx2, y+12);
+        if(nxt!=null) drawMini(g,nxt,cx2,y+14);
         y+=78;
-
-        // ── Q/E hint ──
         drawCard(g,sx+4,y,cw,36);
         g.setFont(new Font("Arial",Font.BOLD,10)); g.setColor(new Color(55,200,80));
-        g.drawString("Q / E  \u2014  Shift Numbers", cx, y+13);
+        g.drawString("Q / E  \u2014  Shift Numbers", cx2, y+13);
         g.setFont(new Font("Arial",Font.PLAIN,9)); g.setColor(new Color(25,110,45));
-        g.drawString("Rearrange digits on piece", cx, y+27);
+        g.drawString("Rearrange digits on piece", cx2, y+27);
         y+=42;
-
-        // ── Power-ups panel ──
         long now = System.currentTimeMillis();
         drawCard(g,sx+4,y,cw,100);
         g.setFont(new Font("Arial",Font.BOLD,9)); g.setColor(new Color(75,80,135));
-        g.drawString("POWER-UPS", cx, y+12); y+=16;
-
+        g.drawString("POWER-UPS", cx2, y+12); y+=16;
         Object[][] puRows = {
-            new Object[]{"Time Freeze","F", freezeCharges, freezeActive ? (freezeEndMs-now) : 0L, FREEZE_DURATION_MS, freezeActive, 100,200,255},
-            new Object[]{"Slow-Mo",    "S", slowMoCharges, slowMoActive ? (slowMoEndMs-now) : 0L, SLOWMO_DURATION_MS, slowMoActive, 255,175,40},
-            new Object[]{"Clear Bomb", "B", bombCharges,   0L,                                    1L,                false,         220,80,200},
+                new Object[]{"Time Freeze","F", freezeCharges, freezeActive ? (freezeEndMs-now) : 0L, FREEZE_DURATION_MS, freezeActive, 100,200,255},
+                new Object[]{"Slow-Mo",    "S", slowMoCharges, slowMoActive ? (slowMoEndMs-now) : 0L, SLOWMO_DURATION_MS, slowMoActive, 255,175,40},
+                new Object[]{"Clear Bomb", "B", bombCharges,   0L, 1L, false, 220,80,200},
         };
         for (Object[] pu : puRows) {
-            String puName = (String)pu[0];
-            String puKey  = (String)pu[1];
-            int charges   = (int)pu[2];
-            long remMs    = (long)pu[3];
-            long totMs    = (long)pu[4];
-            boolean active= (boolean)pu[5];
-            Color puClr   = new Color((int)pu[6],(int)pu[7],(int)pu[8]);
-
-            int rowY = y;
-            int rowH = active ? 20 : 17;
-
-            // Active glow behind row
+            String puName = (String)pu[0], puKey = (String)pu[1];
+            int charges = (int)pu[2]; long remMs = (long)pu[3], totMs = (long)pu[4];
+            boolean active = (boolean)pu[5];
+            Color puClr = new Color((int)pu[6],(int)pu[7],(int)pu[8]);
+            int rowY = y, rowH = active ? 20 : 17;
             if (active) {
                 float gp2 = (float)(Math.sin(tick*0.2)*0.3+0.7);
                 Composite oldc = g.getComposite();
                 g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.18f*gp2));
-                g.setColor(puClr); g.fillRoundRect(cx-2, rowY-1, cw-6, rowH+2, 4, 4);
+                g.setColor(puClr); g.fillRoundRect(cx2-2, rowY-1, cw-6, rowH+2, 4, 4);
                 g.setComposite(oldc);
                 if (totMs > 0 && remMs > 0) {
                     float frac = Math.min(1f, (float)remMs / totMs);
-                    g.setColor(new Color(20,20,30)); g.fillRect(cx-2, rowY+15, cw-6, 3);
-                    g.setColor(puClr); g.fillRect(cx-2, rowY+15, (int)(frac*(cw-6)), 3);
+                    g.setColor(new Color(20,20,30)); g.fillRect(cx2-2, rowY+15, cw-6, 3);
+                    g.setColor(puClr); g.fillRect(cx2-2, rowY+15, (int)(frac*(cw-6)), 3);
                 }
             }
-
-            // Name (left side, leaves room for key + pips on right)
             g.setFont(new Font("Arial",Font.BOLD,10));
             g.setColor(active ? puClr : (charges>0 ? new Color(180,185,220) : new Color(70,72,110)));
-            g.drawString(puName, cx, rowY+11);
-
-            // Key badge — anchored 48px from right edge of card
-            int badgeRight = sx + cw - 4;       // right edge of card (inside border)
-            int pipsTotalW = 3*8 + 2*3;         // 3 pips × 8px + 2 gaps × 3px = 30px
-            int keyX = badgeRight - pipsTotalW - 6 - 18; // key badge 18px wide
+            g.drawString(puName, cx2, rowY+11);
+            int badgeRight = sx + cw - 4;
+            int pipsTotalW = 3*8 + 2*3;
+            int keyX = badgeRight - pipsTotalW - 6 - 18;
             g.setColor(charges>0||active ? new Color(30,30,48) : new Color(18,18,26));
             g.fillRoundRect(keyX, rowY+1, 16, 11, 3, 3);
             g.setColor(charges>0||active ? new Color(60,60,100) : new Color(35,35,55));
@@ -1982,8 +1986,6 @@ class GamePanel extends JPanel implements ActionListener {
             FontMetrics kfm2 = g.getFontMetrics();
             g.setColor(charges>0||active ? new Color(200,170,40) : new Color(60,60,80));
             g.drawString(puKey, keyX+(16-kfm2.stringWidth(puKey))/2, rowY+10);
-
-            // Charge pips — right-aligned inside card
             int pipsX = badgeRight - pipsTotalW;
             for (int pip=0; pip<3; pip++) {
                 boolean filled = pip < charges;
@@ -1995,65 +1997,49 @@ class GamePanel extends JPanel implements ActionListener {
             y += rowH + 2;
         }
         y += 8;
-
-        // ── Conflict indicator ──
         boolean hasConflict=false;
         for(boolean[]row:conflict) for(boolean b:row) if(b){hasConflict=true;break;}
         if(hasConflict){
-            float p=(float)(Math.sin(tick*0.15)*0.35+0.65);
-            drawCard(g,sx+4,y,cw,24,new Color((int)(p*120),6,6));
-            g.setFont(new Font("Arial",Font.BOLD,10)); g.setColor(new Color(255,60,60,(int)(p*255)));
-            g.drawString("\u26a0  CONFLICT DETECTED", cx, y+16);
+            float p2=(float)(Math.sin(tick*0.15)*0.35+0.65);
+            drawCard(g,sx+4,y,cw,24,new Color((int)(p2*120),6,6));
+            g.setFont(new Font("Arial",Font.BOLD,10)); g.setColor(new Color(255,60,60,(int)(p2*255)));
+            g.drawString("\u26a0  CONFLICT DETECTED", cx2, y+16);
             y+=30;
         } else { y+=4; }
-
-        // ── Controls ──
         drawCard(g,sx+4,y,cw,174);
         g.setFont(new Font("Arial",Font.BOLD,9)); g.setColor(new Color(75,80,135));
-        g.drawString("CONTROLS", cx, y+12);
+        g.drawString("CONTROLS", cx2, y+12);
         y+=14;
         String[][]ctrl={
-            {"\u2190\u2192","Move left/right"},
-            {"\u2191 / Z","Rotate"},
-            {"\u2193","Soft drop"},
-            {"Space","Hard drop"},
-            {"Q/E","Shift digits"},
-            {"F","Time Freeze"},
-            {"S","Slow-Mo"},
-            {"B","Clear Bomb"},
-            {"\u2013/=","Speed"},
-            {"M","Mute music"},
-            {"P","Pause"},
-            {"R","Restart"}
+                {"\u2190\u2192","Move left/right"},{"\u2191 / Z","Rotate"},{"\u2193","Soft drop"},
+                {"Space","Hard drop"},{"Q/E","Shift digits"},{"F","Time Freeze"},
+                {"S","Slow-Mo"},{"B","Clear Bomb"},{"\u2013/=","Speed"},
+                {"M","Mute music"},{"P","Pause"},{"R","Restart"}
         };
         for(String[]row:ctrl){
-            // Key badge
             g.setFont(new Font("Courier New",Font.BOLD,9));
             FontMetrics kfm=g.getFontMetrics();
             int kw=kfm.stringWidth(row[0])+8, kh=13;
-            g.setColor(new Color(22,22,34)); g.fillRoundRect(cx,y,kw,kh,3,3);
-            g.setColor(new Color(55,55,85)); g.drawRoundRect(cx,y,kw,kh,3,3);
-            g.setColor(new Color(210,175,45)); g.drawString(row[0], cx+4, y+kh-2);
-            // Description
+            g.setColor(new Color(22,22,34)); g.fillRoundRect(cx2,y,kw,kh,3,3);
+            g.setColor(new Color(55,55,85)); g.drawRoundRect(cx2,y,kw,kh,3,3);
+            g.setColor(new Color(210,175,45)); g.drawString(row[0], cx2+4, y+kh-2);
             g.setFont(new Font("Arial",Font.PLAIN,9)); g.setColor(new Color(55,58,100));
-            g.drawString(row[1], cx+kw+6, y+kh-2);
+            g.drawString(row[1], cx2+kw+6, y+kh-2);
             y+=14;
         }
         y+=4;
-
-        // ── Scoring quick-ref ──
         int scoringH = 74;
         if (y + scoringH < H - 4) {
             drawCard(g,sx+4,y,cw,scoringH);
             g.setFont(new Font("Arial",Font.BOLD,9)); g.setColor(new Color(75,80,135));
-            g.drawString("SCORING", cx, y+12); y+=14;
+            g.drawString("SCORING", cx2, y+12); y+=14;
             String[]sl={"Unique clear","3\u00d73 box","Repeated \u2192"};
             String[]sv={"40\u00d7Lvl","1000\u00d7Lvl","0 pts"};
-            Color[]sc={new Color(175,175,50),new Color(255,210,0),new Color(190,55,55)};
+            Color[]sc2={new Color(175,175,50),new Color(255,210,0),new Color(190,55,55)};
             for(int i=0;i<sl.length;i++){
                 g.setFont(new Font("Arial",Font.PLAIN,9)); g.setColor(new Color(55,58,100));
-                g.drawString(sl[i], cx, y);
-                g.setFont(new Font("Arial Black",Font.BOLD,9)); g.setColor(sc[i]);
+                g.drawString(sl[i], cx2, y);
+                g.setFont(new Font("Arial Black",Font.BOLD,9)); g.setColor(sc2[i]);
                 FontMetrics sfm=g.getFontMetrics(); int sw=sfm.stringWidth(sv[i]);
                 g.drawString(sv[i], sx+cw-sw, y);
                 y+=14;
@@ -2067,10 +2053,10 @@ class GamePanel extends JPanel implements ActionListener {
         g.setColor(new Color(34,34,52)); g.setStroke(new BasicStroke(1f)); g.drawRoundRect(x,y,w,h,8,8);
     }
 
-    int drawStat(Graphics2D g,int cx,int y,String label,int val,Color clr){
-        g.setFont(new Font("Arial",Font.BOLD,8)); g.setColor(new Color(56,60,105)); g.drawString(label,cx,y+10);
-        g.setFont(new Font("Arial Black",Font.BOLD,19)); g.setColor(Color.BLACK); g.drawString(String.valueOf(val),cx+1,y+27);
-        g.setColor(clr); g.drawString(String.valueOf(val),cx,y+26); return y+30;
+    int drawStat(Graphics2D g,int cx2,int y,String label,int val,Color clr){
+        g.setFont(new Font("Arial",Font.BOLD,8)); g.setColor(new Color(56,60,105)); g.drawString(label,cx2,y+10);
+        g.setFont(new Font("Arial Black",Font.BOLD,19)); g.setColor(Color.BLACK); g.drawString(String.valueOf(val),cx2+1,y+27);
+        g.setColor(clr); g.drawString(String.valueOf(val),cx2,y+26); return y+30;
     }
 
     void drawMini(Graphics2D g,Piece p,int sx,int sy){
@@ -2094,156 +2080,108 @@ class GamePanel extends JPanel implements ActionListener {
         return new Color(Math.min(255,(int)(t*225+30)),Math.min(255,(int)((1f-t)*200+55)),22);
     }
 
-    // ── Rich pause menu ───────────────────────────────────────────
     void drawPauseMenu(Graphics2D g) {
-        // Darkened board backdrop
         g.setColor(new Color(0,0,0,200)); g.fillRect(PAD,PAD,BOARD_W,BOARD_H);
-
-        int cx = PAD + BOARD_W/2;
+        int cx2 = PAD + BOARD_W/2;
         int cardW = Math.min(BOARD_W - 40, 320);
-        int cardX = cx - cardW/2;
-
-        if (inSettings) {
-            drawSettingsPanel(g, cx, cardX, cardW);
-        } else {
-            drawPauseMenuPanel(g, cx, cardX, cardW);
-        }
+        int cardX = cx2 - cardW/2;
+        if (inSettings) drawSettingsPanel(g, cx2, cardX, cardW);
+        else            drawPauseMenuPanel(g, cx2, cardX, cardW);
     }
 
-    void drawPauseMenuPanel(Graphics2D g, int cx, int cardX, int cardW) {
-        // ── Card ──────────────────────────────────────────────────
+    void drawPauseMenuPanel(Graphics2D g, int cx2, int cardX, int cardW) {
         int cardH = 250, cardY = PAD + BOARD_H/2 - cardH/2;
         g.setColor(new Color(10, 10, 18));
         g.fillRoundRect(cardX, cardY, cardW, cardH, 16, 16);
         g.setColor(new Color(90,100,220)); g.setStroke(new BasicStroke(2f));
-        g.drawRoundRect(cardX, cardY, cardW, cardH, 16, 16);
-        g.setStroke(new BasicStroke(1f));
-
-        // Top accent bar
+        g.drawRoundRect(cardX, cardY, cardW, cardH, 16, 16); g.setStroke(new BasicStroke(1f));
         g.setColor(new Color(90,100,220));
         g.fillRoundRect(cardX, cardY, cardW, 4, 16, 16);
-        g.fillRect(cardX, cardY+4, cardW, 4);  // fill the rounded top corners
-
-        // ── Title ─────────────────────────────────────────────────
+        g.fillRect(cardX, cardY+4, cardW, 4);
         g.setFont(new Font("Arial Black", Font.BOLD, 22));
         FontMetrics fm = g.getFontMetrics();
         g.setColor(new Color(80,80,120,60));
-        g.drawString("PAUSED", cx - fm.stringWidth("PAUSED")/2 + 2, cardY + 44 + 2);
+        g.drawString("PAUSED", cx2 - fm.stringWidth("PAUSED")/2 + 2, cardY + 44 + 2);
         g.setColor(new Color(140,150,255));
-        g.drawString("PAUSED", cx - fm.stringWidth("PAUSED")/2, cardY + 44);
-
-        // Score snapshot
+        g.drawString("PAUSED", cx2 - fm.stringWidth("PAUSED")/2, cardY + 44);
         g.setFont(new Font("Arial", Font.BOLD, 11)); g.setColor(new Color(100,105,160));
-        String snap = "Score " + score + "  •  Level " + level + "  •  Lines " + lines;
+        String snap = "Score " + score + "  \u2022  Level " + level + "  \u2022  Lines " + lines;
         fm = g.getFontMetrics();
-        g.drawString(snap, cx - fm.stringWidth(snap)/2, cardY + 62);
-
-        // Divider
+        g.drawString(snap, cx2 - fm.stringWidth(snap)/2, cardY + 62);
         g.setColor(new Color(35,35,60)); g.fillRect(cardX+20, cardY+70, cardW-40, 1);
-
-        // ── Menu items ────────────────────────────────────────────
-        String[] labels = {"\u25b6  Resume",  "\u21ba  Restart", "\u2699  Settings", "\u2302  Main Menu"};
-        Color[]  colors = {new Color(80,220,110), new Color(255,200,60), new Color(120,180,255), new Color(220,100,100)};
+        String[] labels = {"\u25b6  Resume", "\u21ba  Restart", "\u2699  Settings", "\u2302  Main Menu"};
+        Color[] colors = {new Color(80,220,110), new Color(255,200,60), new Color(120,180,255), new Color(220,100,100)};
         int itemH = 40, itemY = cardY + 80;
-
         for (int i = 0; i < labels.length; i++) {
             boolean sel = (i == pauseSel);
             int iy = itemY + i * itemH;
-
-            // Highlight background
             if (sel) {
                 g.setColor(new Color(colors[i].getRed()/5, colors[i].getGreen()/5, colors[i].getBlue()/5, 180));
                 g.fillRoundRect(cardX+12, iy+3, cardW-24, itemH-6, 8, 8);
                 g.setColor(colors[i]); g.setStroke(new BasicStroke(1.5f));
-                g.drawRoundRect(cardX+12, iy+3, cardW-24, itemH-6, 8, 8);
-                g.setStroke(new BasicStroke(1f));
-                // Selection indicator triangle
+                g.drawRoundRect(cardX+12, iy+3, cardW-24, itemH-6, 8, 8); g.setStroke(new BasicStroke(1f));
                 g.setColor(colors[i]);
                 int[] tx = {cardX+16, cardX+22, cardX+16};
                 int[] ty = {iy+itemH/2-5, iy+itemH/2, iy+itemH/2+5};
                 g.fillPolygon(tx, ty, 3);
             }
-
             g.setFont(new Font("Arial Black", Font.BOLD, sel ? 14 : 13));
             fm = g.getFontMetrics();
             g.setColor(sel ? colors[i] : new Color(130,132,170));
-            g.drawString(labels[i], cx - fm.stringWidth(labels[i])/2, iy + itemH/2 + fm.getAscent()/2 - 2);
+            g.drawString(labels[i], cx2 - fm.stringWidth(labels[i])/2, iy + itemH/2 + fm.getAscent()/2 - 2);
         }
-
-        // ── Footer hint ───────────────────────────────────────────
         g.setFont(new Font("Arial", Font.PLAIN, 10)); g.setColor(new Color(55,57,90));
         String hint = "\u2191\u2193 navigate    Enter select    P / Esc resume";
         fm = g.getFontMetrics();
-        g.drawString(hint, cx - fm.stringWidth(hint)/2, cardY + cardH - 10);
+        g.drawString(hint, cx2 - fm.stringWidth(hint)/2, cardY + cardH - 10);
     }
 
-    void drawSettingsPanel(Graphics2D g, int cx, int cardX, int cardW) {
+    void drawSettingsPanel(Graphics2D g, int cx2, int cardX, int cardW) {
         int cardH = 230, cardY = PAD + BOARD_H/2 - cardH/2;
-
         g.setColor(new Color(8, 10, 18));
         g.fillRoundRect(cardX, cardY, cardW, cardH, 16, 16);
         g.setColor(new Color(120,160,255)); g.setStroke(new BasicStroke(2f));
-        g.drawRoundRect(cardX, cardY, cardW, cardH, 16, 16);
-        g.setStroke(new BasicStroke(1f));
-
+        g.drawRoundRect(cardX, cardY, cardW, cardH, 16, 16); g.setStroke(new BasicStroke(1f));
         g.setColor(new Color(120,160,255));
         g.fillRoundRect(cardX, cardY, cardW, 4, 16, 16);
         g.fillRect(cardX, cardY+4, cardW, 4);
-
-        // Title
         g.setFont(new Font("Arial Black", Font.BOLD, 18));
         FontMetrics fm = g.getFontMetrics();
         g.setColor(new Color(140,180,255));
-        g.drawString("\u2699  SETTINGS", cx - fm.stringWidth("\u2699  SETTINGS")/2, cardY + 38);
-
+        g.drawString("\u2699  SETTINGS", cx2 - fm.stringWidth("\u2699  SETTINGS")/2, cardY + 38);
         g.setColor(new Color(35,35,60)); g.fillRect(cardX+20, cardY+48, cardW-40, 1);
-
-        // ── Setting rows ──────────────────────────────────────────
-        // Row 0: Mute music
-        // Row 1: Ghost piece
-        // Row 2: Game speed
         String[] rowLabels = {"Music", "Ghost piece", "Game speed"};
         int rowH = 48, rowY = cardY + 58;
-
         for (int i = 0; i < 3; i++) {
             boolean sel = (i == settingsSel);
             int ry = rowY + i * rowH;
-
             if (sel) {
                 g.setColor(new Color(20,30,55,200));
                 g.fillRoundRect(cardX+10, ry+2, cardW-20, rowH-4, 8, 8);
                 g.setColor(new Color(100,150,255)); g.setStroke(new BasicStroke(1.5f));
-                g.drawRoundRect(cardX+10, ry+2, cardW-20, rowH-4, 8, 8);
-                g.setStroke(new BasicStroke(1f));
+                g.drawRoundRect(cardX+10, ry+2, cardW-20, rowH-4, 8, 8); g.setStroke(new BasicStroke(1f));
             }
-
-            // Row label
             g.setFont(new Font("Arial Black", Font.BOLD, 12));
             g.setColor(sel ? new Color(180,210,255) : new Color(100,105,155));
             g.drawString(rowLabels[i], cardX+24, ry+20);
-
-            // Row value / control
             if (i == 0) {
-                // Mute toggle — pill button
                 drawToggle(g, cardX + cardW - 80, ry+8, !muted, new Color(80,220,100));
                 g.setFont(new Font("Arial", Font.PLAIN, 10)); g.setColor(new Color(80,85,130));
                 g.drawString("Enter to toggle", cardX+24, ry+36);
             } else if (i == 1) {
-                // Ghost piece toggle
                 drawToggle(g, cardX + cardW - 80, ry+8, showGhost, new Color(80,180,255));
                 g.setFont(new Font("Arial", Font.PLAIN, 10)); g.setColor(new Color(80,85,130));
                 g.drawString("Enter to toggle", cardX+24, ry+36);
             } else {
-                // Speed control — segmented bar + level number
-                int segCount = 10, segW2 = (cardW - 90) / segCount;
+                int segCount = 10, segW3 = (cardW - 90) / segCount;
                 int barX = cardX + 24;
                 for (int s = 1; s <= segCount; s++) {
-                    float t = (s-1)/9f;
+                    float t2 = (s-1)/9f;
                     Color sc = s <= level
-                        ? new Color(Math.min(255,(int)(t*225+30)), Math.min(255,(int)((1-t)*200+55)), 22)
-                        : new Color(22,22,34);
+                            ? new Color(Math.min(255,(int)(t2*225+30)), Math.min(255,(int)((1-t2)*200+55)), 22)
+                            : new Color(22,22,34);
                     g.setColor(sc);
-                    g.fillRect(barX + (s-1)*(segW2+2), ry+10, segW2, 10);
+                    g.fillRect(barX + (s-1)*(segW3+2), ry+10, segW3, 10);
                 }
                 g.setFont(new Font("Arial Black", Font.BOLD, 18));
                 g.setColor(speedColor(level));
@@ -2252,26 +2190,21 @@ class GamePanel extends JPanel implements ActionListener {
                 g.drawString("\u2190\u2192 adjust speed", cardX+24, ry+36);
             }
         }
-
-        // Back hint
         g.setFont(new Font("Arial", Font.PLAIN, 10)); g.setColor(new Color(55,57,90));
         String hint = "Esc / Backspace \u2014 back to pause menu";
         fm = g.getFontMetrics();
-        g.drawString(hint, cx - fm.stringWidth(hint)/2, cardY + cardH - 10);
+        g.drawString(hint, cx2 - fm.stringWidth(hint)/2, cardY + cardH - 10);
     }
 
-    // Draw an on/off toggle pill
     void drawToggle(Graphics2D g, int x, int y, boolean on, Color onColor) {
         int tw = 54, th = 24;
         Color bg = on ? new Color(onColor.getRed()/4, onColor.getGreen()/4, onColor.getBlue()/4) : new Color(20,20,30);
         g.setColor(bg); g.fillRoundRect(x, y, tw, th, th, th);
         g.setColor(on ? onColor : new Color(60,62,90)); g.setStroke(new BasicStroke(1.5f));
         g.drawRoundRect(x, y, tw, th, th, th); g.setStroke(new BasicStroke(1f));
-        // Knob
         int knobX = on ? x + tw - th + 3 : x + 3;
         g.setColor(on ? onColor : new Color(70,72,100));
         g.fillOval(knobX, y+3, th-6, th-6);
-        // Label
         g.setFont(new Font("Arial Black", Font.BOLD, 9));
         g.setColor(on ? onColor : new Color(60,62,90));
         g.drawString(on ? "ON" : "OFF", on ? x+6 : x+26, y+16);
@@ -2279,64 +2212,53 @@ class GamePanel extends JPanel implements ActionListener {
 
     void drawOverlay(Graphics2D g,String title,String sub,Color clr){
         g.setColor(new Color(0,0,0,190)); g.fillRect(PAD,PAD,BOARD_W,BOARD_H);
-        int cx=PAD+BOARD_W/2,cy=PAD+BOARD_H/2;
+        int cx2=PAD+BOARD_W/2,cy2=PAD+BOARD_H/2;
         g.setFont(new Font("Arial Black",Font.BOLD,36)); FontMetrics fm=g.getFontMetrics();
         g.setColor(new Color(clr.getRed(),clr.getGreen(),clr.getBlue(),45));
-        g.drawString(title,cx-fm.stringWidth(title)/2+2,cy-16+2);
-        g.setColor(clr); g.drawString(title,cx-fm.stringWidth(title)/2,cy-16);
+        g.drawString(title,cx2-fm.stringWidth(title)/2+2,cy2-16+2);
+        g.setColor(clr); g.drawString(title,cx2-fm.stringWidth(title)/2,cy2-16);
         g.setFont(new Font("Arial",Font.PLAIN,13)); fm=g.getFontMetrics();
-        g.setColor(new Color(190,190,215)); g.drawString(sub,cx-fm.stringWidth(sub)/2,cy+18);
+        g.setColor(new Color(190,190,215)); g.drawString(sub,cx2-fm.stringWidth(sub)/2,cy2+18);
     }
 
     void drawGameOverOverlay(Graphics2D g){
         g.setColor(new Color(0,0,0,210)); g.fillRect(PAD,PAD,BOARD_W,BOARD_H);
-        int cx=PAD+BOARD_W/2, cy=PAD+BOARD_H/2;
-
-        int cardW=BOARD_W-40, cardH=180, cardX=cx-cardW/2, cardY=cy-cardH/2;
+        int cx2=PAD+BOARD_W/2, cy2=PAD+BOARD_H/2;
+        int cardW=BOARD_W-40, cardH=180, cardX=cx2-cardW/2, cardY=cy2-cardH/2;
         g.setColor(new Color(14,8,10));
         g.fillRoundRect(cardX, cardY, cardW, cardH, 14, 14);
         g.setColor(new Color(180,30,30)); g.setStroke(new BasicStroke(2f));
-        g.drawRoundRect(cardX, cardY, cardW, cardH, 14, 14);
-        g.setStroke(new BasicStroke(1f));
-        // Top accent
+        g.drawRoundRect(cardX, cardY, cardW, cardH, 14, 14); g.setStroke(new BasicStroke(1f));
         g.setColor(new Color(180,30,30));
         g.fillRoundRect(cardX, cardY, cardW, 4, 14, 14);
         g.fillRect(cardX, cardY+4, cardW, 4);
-
         g.setFont(new Font("Arial Black",Font.BOLD,34));
         FontMetrics fm=g.getFontMetrics();
         String titleStr="GAME OVER";
-        g.setColor(new Color(180,30,30,60)); g.drawString(titleStr,cx-fm.stringWidth(titleStr)/2+2,cardY+48+2);
-        g.setColor(new Color(220,55,55)); g.drawString(titleStr,cx-fm.stringWidth(titleStr)/2,cardY+48);
-
+        g.setColor(new Color(180,30,30,60)); g.drawString(titleStr,cx2-fm.stringWidth(titleStr)/2+2,cardY+48+2);
+        g.setColor(new Color(220,55,55)); g.drawString(titleStr,cx2-fm.stringWidth(titleStr)/2,cardY+48);
         g.setFont(new Font("Arial Black",Font.BOLD,18)); fm=g.getFontMetrics();
         String scStr="Score  "+score;
         g.setColor(new Color(255,215,50));
-        g.drawString(scStr, cx-fm.stringWidth(scStr)/2, cardY+80);
-
+        g.drawString(scStr, cx2-fm.stringWidth(scStr)/2, cardY+80);
         boolean isNew = score > 0 && score == TetriDoku.highScore;
         g.setFont(new Font("Arial",Font.BOLD,12)); fm=g.getFontMetrics();
         String hsStr = isNew ? "\u2b50  New Best Score!" : "Best  " + TetriDoku.highScore;
         g.setColor(isNew ? new Color(255,200,0) : new Color(100,100,140));
-        g.drawString(hsStr, cx-fm.stringWidth(hsStr)/2, cardY+102);
-
+        g.drawString(hsStr, cx2-fm.stringWidth(hsStr)/2, cardY+102);
         g.setFont(new Font("Arial",Font.PLAIN,11)); fm=g.getFontMetrics();
         String lvStr="Reached Level "+level+"  \u2022  Lines Cleared: "+lines;
         g.setColor(new Color(90,95,140));
-        g.drawString(lvStr, cx-fm.stringWidth(lvStr)/2, cardY+124);
-
-        // Two action buttons — R to restart, Esc for menu
+        g.drawString(lvStr, cx2-fm.stringWidth(lvStr)/2, cardY+124);
         int btnY = cardY + 142, btnH = 26, btnGap = 10;
         int btnW = (cardW - 48 - btnGap) / 2;
-        // Restart button
         g.setColor(new Color(15,35,15));
         g.fillRoundRect(cardX+20, btnY, btnW, btnH, 7, 7);
         g.setColor(new Color(80,200,100)); g.setStroke(new BasicStroke(1.5f));
         g.drawRoundRect(cardX+20, btnY, btnW, btnH, 7, 7); g.setStroke(new BasicStroke(1f));
         g.setFont(new Font("Arial Black",Font.BOLD,11)); fm=g.getFontMetrics();
-        String rs="R  \u2014  Play Again";
+        String rs="R  \u2014  Play Again"; g.setColor(new Color(80,200,100));
         g.drawString(rs, cardX+20+(btnW-fm.stringWidth(rs))/2, btnY+18);
-        // Main menu button
         int btn2X = cardX+20+btnW+btnGap;
         g.setColor(new Color(30,15,15));
         g.fillRoundRect(btn2X, btnY, btnW, btnH, 7, 7);
@@ -2364,7 +2286,7 @@ class SoundEngine {
 
     static final int BPM=165, BEAT=SR*60/BPM, BAR=BEAT*4;
     static final float[]MEL ={440f,329.6f,349.2f,392f,349.2f,329.6f,293.7f,261.6f,261.6f,329.6f,392f,440f,493.9f,440f,392f,329.6f};
-    static final float[]BASS={110f,130.8f,87.3f,98f,  130.8f,87.3f,65.4f,98f,   65.4f,87.3f,110f,130.8f, 123.5f,110f,98f,87.3f};
+    static final float[]BASS={110f,130.8f,87.3f,98f,130.8f,87.3f,65.4f,98f,65.4f,87.3f,110f,130.8f,123.5f,110f,98f,87.3f};
 
     static void init(){
         if(ready)return;
@@ -2457,33 +2379,27 @@ class SoundEngine {
     static float melEnv(float t){if(t<0.04f)return t/0.04f;if(t<0.78f)return 1f;return(float)Math.exp(-5*(t-0.78f)/0.22f);}
     static float bassEnv(float t){if(t<0.015f)return t/0.015f;return(float)Math.exp(-4.5f*t);}
 
-    // Menu BGM — same melody, 110 BPM, no drums, lush pad layers, gentle
     static final int MBPM=110, MBEAT=SR*60/MBPM, MBAR=MBEAT*4;
     static final float[]MMEL={329.6f,261.6f,293.7f,329.6f,349.2f,329.6f,261.6f,246.9f,
-                               261.6f,293.7f,329.6f,392f,  349.2f,329.6f,293.7f,261.6f};
+            261.6f,293.7f,329.6f,392f,349.2f,329.6f,293.7f,261.6f};
 
     static byte[] menuBgmFrame(){
         int n=512; byte[]buf=new byte[n*2]; int pat=MBEAT*16;
         for(int i=0;i<n;i++){
             long s=menuBgmSample+i; int pos=(int)(s%pat),ni=pos/MBEAT,pin=pos%MBEAT;
             float nt=(float)pin/MBEAT;
-            // Main melody — soft triangle wave
             float mf=MMEL[ni%MMEL.length],mEnv=melEnv(nt);
             float mPh=(float)(s*mf/SR)%1f;
             float mel=(mPh<0.5f?mPh*4f-1f:3f-mPh*4f)*mEnv*0.11f;
-            // Octave up layer — very soft
             float mPh2=(float)(s*mf*2/SR)%1f;
             mel+=(mPh2<0.5f?mPh2*4f-1f:3f-mPh2*4f)*mEnv*0.04f;
-            // Slow pad — same note, sine wave, very slow attack
             float padEnv=(float)(0.5-0.5*Math.cos(Math.PI*Math.min(1.0,nt*3)));
             float padPh=(float)(s*mf*0.5/SR)%1f;
             float pad=(float)Math.sin(padPh*2*Math.PI)*padEnv*0.07f;
-            // Gentle bass
             float bf=MMEL[ni%MMEL.length]*0.25f,bPh=(float)(s*bf/SR)%1f;
             float bass=(bPh*2f-1f)*bassEnv(nt)*0.06f;
-            // Soft hi-freq shimmer
-            float shim=0f; int sp=pin%(MBEAT/4);
-            if(sp<MBEAT/16){float st=(float)sp/(MBEAT/16);
+            float shim=0f; int sp2=pin%(MBEAT/4);
+            if(sp2<MBEAT/16){float st=(float)sp2/(MBEAT/16);
                 shim=(float)Math.sin(2*Math.PI*3200f*s/SR)*(float)Math.exp(-12f*st)*0.012f;}
             float mix=Math.max(-0.88f,Math.min(0.88f,mel+pad+bass+shim));
             short v=(short)(mix*32767); buf[i*2]=(byte)(v&0xFF); buf[i*2+1]=(byte)((v>>8)&0xFF);
@@ -2584,19 +2500,13 @@ class SoundEngine {
         buf[i*2]=(byte)(v&0xFF); buf[i*2+1]=(byte)((v>>8)&0xFF);
     }
 
-    // ── Power-up sounds ──────────────────────────────────────────
-
-    // Freeze: high crystalline descending shimmer — two pure tones sweep down
     static byte[] freezeSnd() {
         int n = SR * 320 / 1000; byte[] buf = new byte[n * 2]; double ph1=0, ph2=0;
         for (int i = 0; i < n; i++) {
             float t = i / (float) n;
             float env = (float)Math.exp(-3.2f * t) * (1f - (float)Math.exp(-40f * t));
-            float f1 = 1800f - 900f * t;   // sweep 1800→900
-            float f2 = 2400f - 1200f * t;  // sweep 2400→1200 (harmony)
-            ph1 += 2 * Math.PI * f1 / SR;
-            ph2 += 2 * Math.PI * f2 / SR;
-            // Add subtle shimmer noise
+            float f1 = 1800f - 900f * t, f2 = 2400f - 1200f * t;
+            ph1 += 2 * Math.PI * f1 / SR; ph2 += 2 * Math.PI * f2 / SR;
             long seed = (long)i * 1664525L + 1013904223L;
             float noise = ((seed >>> 16 & 0xFFFF) / 32767.5f - 1f) * 0.04f;
             float s = ((float)Math.sin(ph1) * 0.38f + (float)Math.sin(ph2) * 0.22f + noise) * env;
@@ -2605,29 +2515,23 @@ class SoundEngine {
         return buf;
     }
 
-    // Slow-Mo: warm lazy downward pitch bend — thick low sweep, like time stretching
     static byte[] slowSnd() {
         int n = SR * 380 / 1000; byte[] buf = new byte[n * 2]; double ph=0, ph2=0;
         for (int i = 0; i < n; i++) {
             float t = i / (float) n;
             float env = (float)Math.exp(-2.8f * t) * (1f - (float)Math.exp(-25f * t));
-            float freq = 520f - 280f * t;         // slow descend
-            float freq2 = freq * 1.498f;           // perfect fifth above
-            ph  += 2 * Math.PI * freq  / SR;
-            ph2 += 2 * Math.PI * freq2 / SR;
-            // Vibrato wobble to feel "slow"
+            float freq = 520f - 280f * t, freq2 = freq * 1.498f;
+            ph  += 2 * Math.PI * freq  / SR; ph2 += 2 * Math.PI * freq2 / SR;
             float vib = (float)Math.sin(2 * Math.PI * 5.5f * t) * 0.015f;
             float s = ((float)Math.sin(ph + vib) * 0.35f + (float)Math.sin(ph2 + vib) * 0.15f
-                     + (float)Math.sin(ph * 2 + vib) * 0.08f) * env;
+                    + (float)Math.sin(ph * 2 + vib) * 0.08f) * env;
             short v = clamp(s); buf[i*2] = (byte)(v&0xFF); buf[i*2+1] = (byte)((v>>8)&0xFF);
         }
         return buf;
     }
 
-    // Bomb: percussive impact boom + upward tail — low thud then rising whoosh
     static byte[] bombSnd() {
         int n = SR * 420 / 1000; byte[] buf = new byte[n * 2];
-        // Kick-style low thud (first 120ms)
         int thudN = SR * 120 / 1000; double thudPh = 0;
         for (int i = 0; i < thudN; i++) {
             float t = i / (float) thudN;
@@ -2639,7 +2543,6 @@ class SoundEngine {
             float s = ((float)Math.sin(thudPh) * 0.50f + noise) * env;
             short v = clamp(s); buf[i*2] = (byte)(v&0xFF); buf[i*2+1] = (byte)((v>>8)&0xFF);
         }
-        // Rising whoosh tail (overlaps from 60ms, lasts rest of clip)
         int whooshStart = SR * 60 / 1000; double wPh = 0;
         for (int i = whooshStart; i < n; i++) {
             float t = (i - whooshStart) / (float)(n - whooshStart);
